@@ -1,0 +1,24 @@
+# Secrets: the Claude API key lives only in the Cloudflare Workers secret and local .dev.vars
+.env
+.env.*
+*.env
+.dev.vars
+.dev.vars.*
+
+# Dependencies and build output
+node_modules/
+dist/
+.wrangler/
+
+# Test photos stay outside the repository
+test_photos/
+*.JPG
+
+# OS and editors
+Thumbs.db
+desktop.ini
+.DS_Store
+*.log
+
+# Claude Code local settings
+.claude/settings.local.json

@@ -1,0 +1,13 @@
+{
+  "name": "nukumori",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Diagnose why your parent's faraway house is cold, with an architect's eye",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/atsu53/nukumori.git"
+  },
+  "devDependencies": {
+    "wrangler": "^4.156.1"
+  }
+}
