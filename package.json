@@ -7,6 +7,13 @@
     "type": "git",
     "url": "git+https://github.com/atsu53/nukumori.git"
   },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.3.0"
+  },
   "devDependencies": {
     "wrangler": "^4.156.1"
   }

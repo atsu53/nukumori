@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "nukumori-api",
+  "main": "worker/index.js",
+  "compatibility_date": "2026-10-15",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+  "vars": {
+    // GitHub Pages origin, plus local dev servers. Not secret.
+    "ALLOWED_ORIGINS": "https://atsu53.github.io,http://localhost:8000,http://127.0.0.1:8000",
+    "MODEL": "claude-opus-5-5",
+    "EFFORT": "medium"
+  }
+  // The API key is the secret ANTHROPIC_API_KEY:
+  //   production: npx wrangler secret put ANTHROPIC_API_KEY
+  //   local dev:  put it in .dev.vars (gitignored)
+}
