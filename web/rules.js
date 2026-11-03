@@ -1,6 +1,6 @@
 // Questions and the architect's rules that run on the device (docs/LOGIC.md ch.3).
-// The result of these rules is sent to Claude as rule_result; Claude may change
-// the ranking but has to say why (rule_overrides).
+// The rules only pick candidates and mark them (must_keep / keep_low / beyond_tolerance);
+// Claude orders them after reading the whole house and says why (rule_overrides).
 
 window.NUKUMORI_RULES = (() => {
   const UNKNOWN = "分からない";
@@ -31,6 +31,7 @@ window.NUKUMORI_RULES = (() => {
   const QUESTIONS = {
     q0: { text: "その家は、どれに近いですか", note: "工事をどこまで決められるかが変わります", options: ["一戸建て（持ち家）", "マンション・アパート（分譲）", "借りている家", UNKNOWN] },
     q1: { text: "家は、いつごろ建ちましたか", note: "だいたいで大丈夫です", options: ["1980年以前", "1981〜1999年", "2000〜2015年", "2016年以降", UNKNOWN] },
+    q9: { text: "工事は、どのくらいまで考えられますか", note: "かけられるお金の感覚で選んでください。金額は聞きません", options: ["工事はしない（暮らし方の工夫だけ）", "1日で終わる工事まで", "数日かかる工事も考える", "大きく直してもよい", "まだ分からない"] },
     q8: { text: "窓やお風呂を、直したことはありますか", note: "新築のときと今の状態を分けるための質問です", options: ["窓を交換した・内窓をつけた", "お風呂を直した（ユニットバス化など）", "どちらも直していない", UNKNOWN] },
     q3: { text: "お風呂は、どんなお風呂ですか", note: "", options: ["タイル張りの昔ながらの浴室", "ユニットバス（古い）", "ユニットバス（比較的新しい）", UNKNOWN] },
     q4: { text: "脱衣所やお風呂に、暖房はありますか", note: "", options: ["ない", "持ち運びのヒーターを使う", "浴室暖房乾燥機がある", UNKNOWN] },
@@ -39,8 +40,8 @@ window.NUKUMORI_RULES = (() => {
     q6: { text: "冬の朝、窓や壁に結露しますか", note: "", options: ["窓がびっしょり", "窓の下のほうだけ", "壁や押入れにも", "ほとんどしない", UNKNOWN] },
     q7: { text: "冬、主に使っている暖房はどれですか", note: "排気筒（煙突）のないストーブは、水蒸気が部屋に出ます", options: ["エアコン", "石油ファンヒーターや開放型ストーブ（排気筒なし）", "FF式・煙突つきのストーブ", "こたつ・電気ストーブ", "床暖房", UNKNOWN] },
   };
-  const ORDER_BATH = ["q0", "q1", "q8", "q3", "q4", "q2", "q5", "q6", "q7"];
-  const ORDER_OTHER = ["q0", "q1", "q8", "q2", "q5", "q6", "q7"];
+  const ORDER_BATH = ["q0", "q1", "q9", "q8", "q3", "q4", "q2", "q5", "q6", "q7"];
+  const ORDER_OTHER = ["q0", "q1", "q9", "q8", "q2", "q5", "q6", "q7"];
   function order(placeId) { return placeId === "bath" ? ORDER_BATH : ORDER_OTHER; }
 
   // ---------- candidate lists (docs/LOGIC.md 2.3) ----------
@@ -124,24 +125,27 @@ window.NUKUMORI_RULES = (() => {
     if (bathEntry && !causes.bathroom_cold && !causes.unheated_rooms) add("unheated_rooms", "needs_check", "浴室・脱衣所が入口（一言）");
     if (placeId === "hall") add("unheated_rooms", "likely", "廊下・トイレが入口（一言）");
 
-    // 3.6 scoring
+    // 3.6 candidates and marks (no scores since 2026-11-04; Claude orders them)
     const heatShock = bathEntry && (a.q4 === "ない" || a.q4 === "持ち運びのヒーターを使う" || a.q3 === "タイル張りの昔ながらの浴室");
-    const sizeScore = { small: 2, medium: 1, large: 0 };
+    const sizeOrder = { small: 0, medium: 1, large: 2 };
+    const tolerance = { "工事はしない（暮らし方の工夫だけ）": -1, "1日で終わる工事まで": 0, "数日かかる工事も考える": 1, "大きく直してもよい": 2 }[a.q9];
     let list = Object.keys(proposals).map((id) => {
       const p = PROPOSALS[id];
-      let score = 0;
-      const why = [];
-      if (proposals[id].direct) { score += 3; why.push("ほぼ確実・可能性の高い原因に直接効く +3"); }
-      score += sizeScore[p.work_size]; why.push(`工事の大きさ ${WORK_LABEL[p.work_size].slice(0, 1)} +${sizeScore[p.work_size]}`);
-      if (heatShock && (id === "bath_heater" || id === "bathroom_renovation")) { score += 2; why.push("ヒートショックの危険を下げる +2"); }
-      if (p.subsidy === "possible") { score += 1; why.push("国の補助の対象になりうる +1"); }
-      return { id, score, work_size: p.work_size, subsidy: p.subsidy, why: why.join("、"), notes: proposals[id].notes.filter(Boolean) };
+      const marks = [];
+      const notes = proposals[id].notes.filter(Boolean);
+      if (proposals[id].direct) notes.push("疑う原因に直接効く");
+      if (heatShock && (id === "bath_heater" || id === "bathroom_renovation")) notes.push("ヒートショックの危険を下げる");
+      if (id === "bath_heater" && bathEntry && (a.q4 === "ない" || a.q4 === "持ち運びのヒーターを使う")) { marks.push("must_keep"); notes.push("外さない案。first_choice の第一候補（3.3）"); }
+      if ((windowDone && (id === "inner_window" || id === "window_replace")) || (bathDone && id === "bathroom_renovation")) { marks.push("keep_low"); notes.push("直した部位なので上げない（Q8）"); }
+      if (tolerance !== undefined && sizeOrder[p.work_size] > tolerance) { marks.push("beyond_tolerance"); notes.push("工事の大きさの許容を超える。次に直すときに（Q9）"); }
+      return { id, work_size: p.work_size, subsidy: p.subsidy, marks, notes };
     });
     if (rented) {
       list = list.filter((x) => ["bath_heater", "inner_window", "aircon_heating", "ventilation"].includes(x.id));
     }
-    list.sort((x, y) => y.score - x.score || sizeScore[y.work_size] - sizeScore[x.work_size]);
-    list.forEach((x, i) => (x.rank = i + 1));
+    // candidate order only, not a ranking: must_keep first, beyond_tolerance last, then smaller work first
+    const weight = (x) => (x.marks.includes("must_keep") ? 0 : 1) + (x.marks.includes("beyond_tolerance") ? 2 : 0) + (x.marks.includes("keep_low") ? 1 : 0);
+    list.sort((x, y) => weight(x) - weight(y) || sizeOrder[x.work_size] - sizeOrder[y.work_size]);
 
     const confOrder = { almost_certain: 0, likely: 1, needs_check: 2 };
     const causeList = Object.keys(causes).map((id) => ({ id, ...causes[id] })).sort((x, y) => confOrder[x.confidence] - confOrder[y.confidence]);
@@ -151,6 +155,7 @@ window.NUKUMORI_RULES = (() => {
       proposals: list,
       heat_shock_level: heatShock ? "strong" : (bathEntry ? "normal" : "none"),
       home_type: a.q0 || "",
+      work_tolerance: a.q9 || "",
       note: rented ? "分譲・賃貸：窓・外壁の工事は管理組合や大家の了解が要る。改修案は暖房・内窓・換気に絞った" : "",
     };
   }
