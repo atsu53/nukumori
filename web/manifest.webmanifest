@@ -1,0 +1,12 @@
+{
+  "name": "nukumori 親の家の寒さを診る",
+  "short_name": "nukumori",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f6efe6",
+  "theme_color": "#f6efe6",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
