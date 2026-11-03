@@ -24,6 +24,12 @@ Built for **Built with Claude: Japan 2026** (Nov 2–8, 2026). All code in this 
 - Test photos are of the developer's own family home. They are kept outside this repository
 - Numbers in the diagnosis come only from public sources (laws and government materials), cited in the app
 
+## Not in this version
+
+- No prediction of room temperature or heating cost figures (a schematic of how heat moves, at most)
+- No quote comparison, long-term-care renovation grants, loans, summer heat, or sensor integration
+- Built for detached owner-occupied houses; condominiums and rentals get a "talk to the building manager first" note
+
 ---
 
 ## 日本語
@@ -37,3 +43,4 @@ Built with Claude: Japan 2026（2026年11月2日〜8日）の作品です。こ�
 - 写真と回答は保存しません
 - テスト用の写真は開発者の家族の家のもので、リポジトリの外に置いています。診断の数値は公開の法令・行政資料だけを使います
 - 審査員向けの使い方は提出前にここへ書きます
+- この版でやらないこと：室温や光熱費の数値の予測（仕組みの模式図まで）、見積書の比較、介護保険の住宅改修、融資、夏の暑さ、センサー連携。一戸建ての持ち家向けで、マンションや賃貸は「まず管理者に相談」の案内にとどめます

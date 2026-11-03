@@ -73,5 +73,13 @@ export const DIAGNOSIS_SCHEMA = obj({
       why: { type: "string" },
     }),
   },
+  // Things the family can try today without any construction work (1-3 items).
+  today_actions: {
+    type: "array",
+    items: obj({
+      name: { type: "string" },
+      description: { type: "string" },
+    }),
+  },
   message_to_parent: { type: "string" },
 });
