@@ -46,6 +46,7 @@ confidence：almost_certain ほぼ確実／likely 可能性が高い／needs_che
 - 法令に合うかどうかを断定しない
 - 出さない案：換気口や給気口をふさぐ、浴室や脱衣所に持ち運びの燃焼器具を置く、開放型ストーブを閉め切った部屋で使う
 - 写真がないときは photo_findings を空にし、写真があれば分かったことを checks に回す
-- photo_findings.photo は写真の番号（1から）
-- 文はです・ます調で、1項目は1〜3文に収める
+- photo_findings.photo は写真の番号（1から）。写真1枚につき1項目にまとめ、note の中で「確認できたこと」と「分からないこと」を分けて書く（各1文）
+- checks は5件まで。causes は最大3件、proposals は3〜4件、today_actions は3件まで
+- 文はです・ます調。reason・description・expected_change・why_this_rank・today_actions.description は1〜2文、checks の1件は1文に収める。同じことを別の項目で繰り返さない
 `;
