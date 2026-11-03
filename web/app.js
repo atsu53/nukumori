@@ -252,9 +252,27 @@
     on("#next", "click", S6);
   }
 
+  // Heat-shock stages from the CASBEE home renovation checklist (2015-07-29, item 1-(7), p.7).
+  // Decided on the device from the answers; Claude is not asked.
+  function heatShockStages() {
+    const a = state.answers, inf = state.inferred || {};
+    const q4 = a.q4 || (inf.q4 && inf.q4.value) || "";
+    const q8 = a.q8 || "";
+    const l2 = q4 === "浴室暖房乾燥機がある" || q4 === "持ち運びのヒーターを使う" ? "done" : q4 === "ない" ? "now" : "check";
+    const l3 = l2 === "done" ? (q8 === "お風呂を直した（ユニットバス化など）" ? "check" : "now") : "next";
+    const l4 = l3 === "now" || l3 === "check" ? "next" : "later";
+    const label = { done: "済んでいる", now: "今ここ", next: "そのあと", later: "さらに先", check: "要確認" };
+    return [
+      { n: 2, text: "脱衣所に暖房を置ける（置いてある、または置く場所とコンセントがある。浴室に暖房があるときも同じ）", s: l2 },
+      { n: 3, text: "それに加えて、浴室と脱衣所の外に接する壁・床・天井を断熱する", s: l3 },
+      { n: 4, text: "それに加えて、居間や寝室から浴室までの通り道とトイレも、断熱した区画の中に入れる", s: l4 },
+    ].map((x) => ({ ...x, label: label[x.s] }));
+  }
+
   function S6() {
     screen = "S6";
     const x = r();
+    const bathStages = state.ruleResult && state.ruleResult.heat_shock_level !== "none" ? heatShockStages() : null;
     render(`
       <h1>まず相談するなら、これ</h1>
       ${x.today_actions && x.today_actions.length ? `<h3>今日からできること（工事なし）</h3>${x.today_actions.map((a) => `<div class="card"><b>${esc(a.name)}</b><p>${esc(a.description)}</p></div>`).join("")}` : ""}
@@ -264,6 +282,9 @@
         <p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>
         <p class="small"><span class="tag">工事の大きさ：${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>
         <p class="small muted">なぜこの順位か：${esc(p.why_this_rank)}</p></div>`).join("")}
+      ${bathStages ? `<h3>お風呂の寒さ対策は、この順で進みます</h3>
+      ${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
+      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>` : ""}
       <p class="small muted">補助制度は年度ごとに内容が変わります。最新は国の「住宅省エネ2026キャンペーン」の公式サイトと自治体の窓口で確認してください。費用の金額はここでは出しません。工務店の見積りで確かめてください。</p>
       ${x.rule_overrides && x.rule_overrides.length ? `<details class="small"><summary class="muted">建築士のルールから変えたところ</summary><ul>${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul></details>` : ""}
       <button class="btn" id="next">確認してほしいこと</button>
@@ -291,7 +312,7 @@
     const x = r();
     const a = state.answers;
     const lines = [];
-    lines.push("工務店に見せる相談シート（nukumori で作成。目安であり現地調査に代わりません）", "");
+    lines.push("工務店に見せる相談シート（nukumori で作成）", "家族が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。", "");
     lines.push("■ 困っていること", `親の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
     lines.push("■ 家族が優先したいこと", `・工事の大きさ：${a.q9 || "未回答"}`);
     if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
@@ -299,16 +320,22 @@
     lines.push("■ 家族が確認したこと（質問の答え）");
     qList().filter((q) => q !== "q9" && q !== "q10").forEach((q) => lines.push(`・${R.QUESTIONS[q].text}：${a[q] || "未回答"}`));
     Object.entries(state.inferred || {}).filter(([q]) => !a[q]).forEach(([q, v]) => lines.push(`・${R.QUESTIONS[q].text}：${v.value}（写真からの AI の推定。要確認）`));
-    lines.push("", "■ 写真から AI が読み取ったこと（推測を含む）");
+    lines.push("", "■ AI の見立て（目安。写真と答えからの推測で、現地では違うことがあります）");
+    lines.push("＜写真から読み取ったこと＞");
     x.photo_findings.forEach((f) => lines.push(`・写真${f.photo}：${f.note}`));
     if (!x.photo_findings.length) lines.push("・写真なし");
-    lines.push("", "■ 原因の見立て");
+    lines.push("＜寒さの原因の見立て＞");
     x.causes.forEach((c) => lines.push(`${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || c.confidence}）：${c.reason}`));
-    lines.push("", "■ 相談したい候補（優先順）");
-    x.proposals.forEach((p) => lines.push(`${p.rank}. ${p.name}${p.first_choice ? "【まず相談】" : ""}（工事の大きさ：${R.WORK_LABEL[p.work_size] || p.work_size}）`));
-    lines.push("", "■ 現地で確認してほしいこと");
+    lines.push("＜相談したい候補（優先順）＞");
+    x.proposals.forEach((p) => lines.push(`${p.rank}. ${p.name}${p.first_choice ? "【まず相談】" : ""}（工事の大きさの目安：${R.WORK_LABEL[p.work_size] || p.work_size}）`));
+    if (state.ruleResult && state.ruleResult.heat_shock_level !== "none") {
+      lines.push("＜お風呂の寒さ対策の段階（CASBEE すまい改修チェックリストのヒートショックの項目）＞");
+      heatShockStages().forEach((s) => lines.push(`・段階${s.n}［${s.label}］${s.text}`));
+    }
+    lines.push("", "■ 現地で必ず確かめてほしいこと（見立ての前提になっている部分です）");
     x.checks.forEach((c) => lines.push(`・${c}`));
     lines.push("", "■ 見積のときに分けてほしいこと", "・工事の範囲／製品と性能／撤去・復旧／調査費／追加工事になる条件／補助制度の扱い／浴室が使えない期間／保証");
+    lines.push("", "■ 補助制度について", "・国の住宅省エネ2026キャンペーン（先進的窓リノベ2026事業など）と自治体の補助が使える可能性があります。対象・金額・期限は年度で変わるので、公式サイトと窓口で最新を確かめてください。このシートには金額を書いていません");
     return lines.join("\n");
   }
 
