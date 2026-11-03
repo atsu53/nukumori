@@ -39,7 +39,11 @@ window.NUKUMORI_RULES = (() => {
     q5: { text: "冬、床の冷たさはどうですか", note: "", options: ["靴下でも足が冷たい", "スリッパなら平気", "気にならない", UNKNOWN] },
     q6: { text: "冬の朝、窓や壁に結露しますか", note: "", options: ["窓がびっしょり", "窓の下のほうだけ", "壁や押入れにも", "ほとんどしない", UNKNOWN] },
     q7: { text: "冬、主に使っている暖房はどれですか", note: "排気筒（煙突）のないストーブは、水蒸気が部屋に出ます", options: ["エアコン", "石油ファンヒーターや開放型ストーブ（排気筒なし）", "FF式・煙突つきのストーブ", "こたつ・電気ストーブ", "床暖房", UNKNOWN] },
+    q10: { text: "寒さのほかに、直したいところはありますか", note: "一緒に直すと工事がまとまることがあります", options: ["雨漏りや外壁・屋根の傷み", "台所・トイレ・お風呂などの古さ", "段差や手すりなど暮らしやすさ", "特にない", UNKNOWN] },
   };
+  // Asked of everyone. The rest are picked by Claude after it reads the photos (/ask).
+  const FIXED = ["q0", "q1", "q9"];
+  // Fallback when /ask fails: the fixed questions, then all the others in the old order.
   const ORDER_BATH = ["q0", "q1", "q9", "q8", "q3", "q4", "q2", "q5", "q6", "q7"];
   const ORDER_OTHER = ["q0", "q1", "q9", "q8", "q2", "q5", "q6", "q7"];
   function order(placeId) { return placeId === "bath" ? ORDER_BATH : ORDER_OTHER; }
@@ -71,10 +75,13 @@ window.NUKUMORI_RULES = (() => {
   const CONF_LABEL = { almost_certain: "ほぼ確実", likely: "可能性が高い", needs_check: "要確認" };
 
   // ---------- the rules (docs/LOGIC.md 3.1-3.6) ----------
-  function run(answers, placeId) {
+  // inferred: question ids Claude read from the photos instead of the family answering.
+  // A cause that rests on such an answer is never "almost certain".
+  function run(answers, placeId, inferred = []) {
     const a = answers || {};
     const causes = {}; // id -> { confidence, why }
-    const add = (id, confidence, why) => {
+    const add = (id, confidence, why, q) => {
+      if (q && inferred.includes(q) && confidence === "almost_certain") { confidence = "likely"; why += "（写真からの推定）"; }
       const rankC = { almost_certain: 3, likely: 2, needs_check: 1 };
       if (!causes[id] || rankC[confidence] > rankC[causes[id].confidence]) causes[id] = { confidence, why };
       else causes[id].why += "。" + why;
@@ -98,7 +105,7 @@ window.NUKUMORI_RULES = (() => {
 
     // 3.2 window
     if (!windowDone) {
-      if (a.q2 === "アルミ枠で1枚ガラス") { add("window_heat_loss", "almost_certain", "アルミ枠の1枚ガラス（3.2）"); want("inner_window", true, "単板ガラスなら内窓を1位に（3.2）"); }
+      if (a.q2 === "アルミ枠で1枚ガラス") { add("window_heat_loss", "almost_certain", "アルミ枠の1枚ガラス（3.2）", "q2");want("inner_window", true, "単板ガラスなら内窓を1位に（3.2）"); }
       else if (a.q2 === "アルミ枠で2枚ガラス（複層）") { add("window_heat_loss", "likely", "アルミ枠からの冷えと結露（3.2）"); want("inner_window", true); want("window_replace", true); }
       else if (a.q2 === UNKNOWN || !a.q2) { if (causes.window_heat_loss) want("inner_window", false, "窓の種類は写真で判断（3.2）"); }
     } else {
@@ -160,5 +167,5 @@ window.NUKUMORI_RULES = (() => {
     };
   }
 
-  return { UNKNOWN, PLACES, QUESTIONS, order, detect, run, CAUSE_NAMES, PROPOSALS, WORK_LABEL, SUBSIDY_LABEL, CONF_LABEL };
+  return { UNKNOWN, PLACES, QUESTIONS, FIXED, order, detect, run, CAUSE_NAMES, PROPOSALS, WORK_LABEL, SUBSIDY_LABEL, CONF_LABEL };
 })();

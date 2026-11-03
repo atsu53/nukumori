@@ -12,8 +12,10 @@
     words: "", place: "", placeId: "", time: "",
     photos: {}, // slot -> { label, media_type, data (base64), preview }
     answers: {}, qIndex: 0,
+    ask: null, askKey: "", askFailed: false, inferred: {}, // Claude's pick of questions (/ask)
     result: null, model: "", ruleResult: null, error: null,
   };
+  const FRESH = { words: "", place: "", placeId: "", time: "", photos: {}, answers: {}, qIndex: 0, ask: null, askKey: "", askFailed: false, inferred: {}, sent: null, result: null, error: null };
   let screen = "S0";
   let backTarget = null;
 
@@ -56,7 +58,7 @@
       <button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}
     `);
-    on("#start", "click", () => { Object.assign(state, { words: "", place: "", placeId: "", time: "", photos: {}, answers: {}, qIndex: 0, result: null, error: null }); S1(); });
+    on("#start", "click", () => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {} }); S1(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
   }
 
@@ -123,19 +125,76 @@
     on("#next", "click", () => { state.qIndex = 0; S3(); });
   }
 
-  // ---------- S3 ----------
+  // ---------- S3 questions: the fixed three, then the ones Claude picked ----------
+  const nFixed = R.FIXED.length;
+  function qList() {
+    if (state.ask) return [...R.FIXED, ...state.ask.questions.map((q) => q.id)];
+    return state.askFailed ? R.order(state.placeId) : R.FIXED;
+  }
   function S3() {
     screen = "S3";
-    const ord = R.order(state.placeId);
-    if (state.qIndex >= ord.length) return S4();
-    const qid = ord[state.qIndex];
+    const list = qList();
+    if (state.qIndex >= list.length) return state.ask || state.askFailed ? S4() : SAsk();
+    const qid = list[state.qIndex];
     const q = R.QUESTIONS[qid];
+    const picked = state.ask && state.qIndex >= nFixed ? state.ask.questions[state.qIndex - nFixed] : null;
+    const progress = state.qIndex < nFixed ? `はじめの質問 ${state.qIndex + 1} / ${nFixed}` : `${state.ask ? "写真を見ての質問" : "質問"} ${state.qIndex - nFixed + 1} / ${list.length - nFixed}`;
     render(`
       <h1>${esc(q.text)}</h1>
-      ${q.note ? `<p class="small muted">${esc(q.note)}</p>` : ""}
+      ${picked ? `<p class="small"><span class="tag">建築士が聞く理由</span>${esc(picked.why)}</p>` : q.note ? `<p class="small muted">${esc(q.note)}</p>` : ""}
       ${q.options.map((o) => `<button class="choice ${state.answers[qid] === o ? "on" : ""}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}
-    `, { back: () => { if (state.qIndex === 0) S2(); else { state.qIndex--; S3(); } }, progress: `${state.qIndex + 1} / ${ord.length}` });
+    `, { back: () => { if (state.qIndex === 0) S2(); else if (state.ask && state.qIndex === nFixed) SLook(); else { state.qIndex--; S3(); } }, progress });
     on(".choice", "click", (e) => { state.answers[qid] = e.currentTarget.dataset.o; state.qIndex++; S3(); });
+  }
+
+  // Photos in the order they are sent; both calls must send them identically (prompt cache).
+  function sentPhotos() {
+    state.sent = Object.keys(state.photos).sort(); // photo n in the result = slot state.sent[n-1]
+    return state.sent.map((k) => ({ label: state.photos[k].label, media_type: state.photos[k].media_type, data: state.photos[k].data }));
+  }
+  function fixedAnswers() { return Object.fromEntries(R.FIXED.map((q) => [q, state.answers[q] || ""])); }
+  function baseBody() { return { parent_words: state.words, place: state.place, time_of_day: state.time, fixed: fixedAnswers(), photos: sentPhotos() }; }
+
+  // ---------- S3a Claude reads the photos and picks 2-3 questions (/ask) ----------
+  async function SAsk() {
+    screen = "SAsk";
+    const key = JSON.stringify([state.words, fixedAnswers(), Object.keys(state.photos).sort(), Object.values(state.photos).map((p) => p.data.length)]);
+    if (state.ask && state.askKey === key) return SLook();
+    state.ask = null; state.inferred = {};
+    render(`
+      <h1>建築士が、写真と間取り図を見ています</h1>
+      <div class="spinner"></div>
+      <p class="muted">見てから、あと2〜3問だけ聞きます。20秒ほどかかります。</p>
+    `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
+    try {
+      const res = await fetch(CFG.apiBase + "/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(baseBody()) });
+      const json = await res.json().catch(() => ({ ok: false, error: "bad_json" }));
+      if (!res.ok || !json.ok) throw new Error(json.error || res.status);
+      const x = json.result;
+      const seen = new Set();
+      const questions = (x.questions || []).filter((q) => R.QUESTIONS[q.id] && !R.FIXED.includes(q.id) && !seen.has(q.id) && seen.add(q.id)).slice(0, 3);
+      const inferred = {};
+      (x.inferred || []).forEach((i) => { if (R.QUESTIONS[i.id] && !seen.has(i.id) && R.QUESTIONS[i.id].options.includes(i.value) && i.value !== R.UNKNOWN) inferred[i.id] = { value: i.value, basis: i.basis }; });
+      state.ask = { first_look: x.first_look || "", questions, inferred: Object.entries(inferred).map(([id, v]) => ({ id, ...v })) };
+      state.inferred = inferred; state.askKey = key; state.askFailed = false;
+      SLook();
+    } catch (e) {
+      // Fall back to asking every question in the fixed order.
+      state.askFailed = true; state.qIndex = nFixed; S3();
+    }
+  }
+
+  function SLook() {
+    screen = "SLook";
+    const a = state.ask;
+    const inf = a.inferred;
+    render(`
+      <h1>写真と答えから、見えたこと</h1>
+      <div class="card"><p class="lead">${esc(a.first_look)}</p></div>
+      ${inf.length ? `<h3>写真から読み取ったこと（答えなくて大丈夫です）</h3>${inf.map((i) => `<div class="card small"><b>${esc(R.QUESTIONS[i.id].text)}</b>：${esc(i.value)}<p class="muted">${esc(i.basis)}</p></div>`).join("")}` : ""}
+      <button class="btn" id="next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button>
+    `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
+    on("#next", "click", () => { state.qIndex = nFixed; S3(); });
   }
 
   // ---------- S4 ----------
@@ -145,11 +204,13 @@
       <h1>建築士の目で見ています</h1>
       <div class="spinner"></div>
       <p class="muted" id="msg">写真と答えを読んでいます。30秒ほどかかります。</p>
-    `, { back: () => { state.qIndex = R.order(state.placeId).length - 1; S3(); } });
-    state.ruleResult = R.run(state.answers, state.placeId);
-    state.sent = Object.keys(state.photos).sort(); // photo n in the result = slot state.sent[n-1]
-    const photos = state.sent.map((k) => ({ label: state.photos[k].label, media_type: state.photos[k].media_type, data: state.photos[k].data }));
-    const body = { parent_words: state.words, place: state.place, time_of_day: state.time, answers: state.answers, rule_result: state.ruleResult, photos };
+    `, { back: () => { state.qIndex = qList().length - 1; S3(); } });
+    const asked = qList();
+    const answers = Object.fromEntries(asked.filter((q) => state.answers[q]).map((q) => [q, state.answers[q]]));
+    const inferredIds = Object.keys(state.inferred).filter((q) => !answers[q]);
+    inferredIds.forEach((q) => (answers[q] = state.inferred[q].value));
+    state.ruleResult = R.run(answers, state.placeId, inferredIds);
+    const body = { ...baseBody(), answers, inferred_from_photos: inferredIds, ask: state.ask, rule_result: state.ruleResult };
     const t = setInterval(() => { const m = $screen.querySelector("#msg"); if (m) m.textContent = ["写真と答えを読んでいます…", "原因を絞っています…", "暮らしの言葉に直しています…"][Math.floor(Date.now() / 8000) % 3]; }, 2000);
     try {
       const res = await fetch(CFG.apiBase + "/diagnose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
@@ -232,9 +293,12 @@
     const lines = [];
     lines.push("工務店に見せる相談シート（nukumori で作成。目安であり現地調査に代わりません）", "");
     lines.push("■ 困っていること", `親の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
+    lines.push("■ 家族が優先したいこと", `・工事の大きさ：${a.q9 || "未回答"}`);
+    if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
+    lines.push("");
     lines.push("■ 家族が確認したこと（質問の答え）");
-    const ord = R.order(state.placeId);
-    ord.forEach((q) => lines.push(`・${R.QUESTIONS[q].text}：${a[q] || "未回答"}`));
+    qList().filter((q) => q !== "q9" && q !== "q10").forEach((q) => lines.push(`・${R.QUESTIONS[q].text}：${a[q] || "未回答"}`));
+    Object.entries(state.inferred || {}).filter(([q]) => !a[q]).forEach(([q, v]) => lines.push(`・${R.QUESTIONS[q].text}：${v.value}（写真からの AI の推定。要確認）`));
     lines.push("", "■ 写真から AI が読み取ったこと（推測を含む）");
     x.photo_findings.forEach((f) => lines.push(`・写真${f.photo}：${f.note}`));
     if (!x.photo_findings.length) lines.push("・写真なし");

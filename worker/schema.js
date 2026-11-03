@@ -32,6 +32,28 @@ const obj = (properties) => ({
   additionalProperties: false,
 });
 
+// Questions Claude may pick in the "ask" step (the fixed ones q0, q1, q9 are asked by the page).
+const QUESTION_IDS = ["q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10"];
+
+export const ASK_SCHEMA = obj({
+  first_look: { type: "string" },
+  questions: {
+    type: "array",
+    items: obj({
+      id: { type: "string", enum: QUESTION_IDS },
+      why: { type: "string" },
+    }),
+  },
+  inferred: {
+    type: "array",
+    items: obj({
+      id: { type: "string", enum: QUESTION_IDS },
+      value: { type: "string" },
+      basis: { type: "string" },
+    }),
+  },
+});
+
 export const DIAGNOSIS_SCHEMA = obj({
   place: { type: "string" },
   causes: {

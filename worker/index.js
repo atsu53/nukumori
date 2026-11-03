@@ -6,7 +6,7 @@
 
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./prompt.js";
-import { DIAGNOSIS_SCHEMA } from "./schema.js";
+import { ASK_SCHEMA, DIAGNOSIS_SCHEMA } from "./schema.js";
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTOS = 5;
@@ -50,33 +50,42 @@ function rateLimited(request) {
 // Returns { input } or { error }.
 function validate(body) {
   if (!body || typeof body !== "object") return { error: "bad_request" };
-  const { parent_words = "", place = "", time_of_day = "", answers = {}, rule_result = {}, photos = [] } = body;
+  const { parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, photos = [] } = body;
   if (typeof parent_words !== "string" || parent_words.length > 300) return { error: "bad_parent_words" };
   if (typeof place !== "string" || place.length > 50) return { error: "bad_place" };
   if (typeof time_of_day !== "string" || time_of_day.length > 50) return { error: "bad_time_of_day" };
-  if (typeof answers !== "object" || typeof rule_result !== "object") return { error: "bad_answers" };
-  if (JSON.stringify({ answers, rule_result }).length > MAX_TEXT_JSON) return { error: "too_long" };
+  if (typeof fixed !== "object" || typeof answers !== "object" || typeof rule_result !== "object" || typeof ask !== "object") return { error: "bad_answers" };
+  if (!Array.isArray(inferred_from_photos)) return { error: "bad_answers" };
+  if (JSON.stringify({ fixed, answers, inferred_from_photos, ask, rule_result }).length > MAX_TEXT_JSON) return { error: "too_long" };
   if (!Array.isArray(photos) || photos.length > MAX_PHOTOS) return { error: "too_many_photos" };
   for (const p of photos) {
     if (!p || typeof p.data !== "string" || typeof p.label !== "string") return { error: "bad_photo" };
     if (!IMAGE_TYPES.includes(p.media_type)) return { error: "bad_photo_type" };
     if (p.data.length > MAX_PHOTO_B64 || p.label.length > 40) return { error: "photo_too_large" };
   }
-  return { input: { parent_words, place, time_of_day, answers, rule_result, photos } };
+  return { input: { parent_words, place, time_of_day, fixed, answers, inferred_from_photos, ask, rule_result, photos } };
 }
 
-function buildContent(input) {
+// The photos and the fixed answers come first and are byte-identical in the ask and the
+// diagnose call, so the second call can read them from the prompt cache.
+function buildContent(input, step) {
   const content = [];
   input.photos.forEach((p, i) => {
     content.push({ type: "text", text: `写真${i + 1}：${p.label}` });
     content.push({ type: "image", source: { type: "base64", media_type: p.media_type, data: p.data } });
   });
-  const { photos, ...rest } = input;
-  content.push({ type: "text", text: JSON.stringify({ ...rest, photo_count: photos.length }) });
+  const { parent_words, place, time_of_day, fixed } = input;
+  content.push({ type: "text", text: JSON.stringify({ parent_words, place, time_of_day, fixed, photo_count: input.photos.length }), cache_control: { type: "ephemeral" } });
+  if (step === "ask") {
+    content.push({ type: "text", text: JSON.stringify({ step }) });
+  } else {
+    const { answers, inferred_from_photos, ask, rule_result } = input;
+    content.push({ type: "text", text: JSON.stringify({ step, ask, answers, inferred_from_photos, rule_result }) });
+  }
   return content;
 }
 
-async function diagnose(input, env) {
+async function callClaude(input, step, env) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   return client.beta.messages.create({
     model: env.MODEL || "claude-opus-5-5",
@@ -85,10 +94,10 @@ async function diagnose(input, env) {
     fallbacks: "default",
     output_config: {
       effort: env.EFFORT || "medium",
-      format: { type: "json_schema", schema: DIAGNOSIS_SCHEMA },
+      format: { type: "json_schema", schema: step === "ask" ? ASK_SCHEMA : DIAGNOSIS_SCHEMA },
     },
     system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-    messages: [{ role: "user", content: buildContent(input) }],
+    messages: [{ role: "user", content: buildContent(input, step) }],
   });
 }
 
@@ -110,7 +119,8 @@ export default {
         },
       });
     }
-    if (url.pathname !== "/diagnose") return fail("not_found", 404, origin);
+    const step = { "/ask": "ask", "/diagnose": "diagnose" }[url.pathname];
+    if (!step) return fail("not_found", 404, origin);
     if (request.method !== "POST") return fail("method_not_allowed", 405, origin);
     if (!origin) return fail("origin_not_allowed", 403, null);
     if (rateLimited(request)) return fail("rate_limited", 429, origin, true);
@@ -133,7 +143,7 @@ export default {
     const started = Date.now();
     let response;
     try {
-      response = await diagnose(input, env);
+      response = await callClaude(input, step, env);
     } catch (e) {
       const status = e instanceof Anthropic.APIError ? e.status : 0;
       console.log(JSON.stringify({ at: new Date().toISOString(), ok: false, upstream_status: status }));
@@ -144,6 +154,7 @@ export default {
     // Log only time, outcome and token counts. Never photos or answers.
     console.log(JSON.stringify({
       at: new Date().toISOString(),
+      step,
       ms: Date.now() - started,
       model: response.model,
       stop_reason: response.stop_reason,
