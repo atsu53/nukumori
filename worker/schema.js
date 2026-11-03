@@ -35,8 +35,25 @@ const obj = (properties) => ({
 // Questions Claude may pick in the "ask" step (the fixed ones q0, q1, q9 are asked by the page).
 const QUESTION_IDS = ["q2", "q3", "q4", "q5", "q6", "q7", "q8", "q10"];
 
+// A point on a photo: x, y in 0-1000 (fraction of the image width / height as sent).
+const point = (extra) => obj({ ...extra, x: { type: "integer" }, y: { type: "integer" } });
+
 export const ASK_SCHEMA = obj({
   first_look: { type: "string" },
+  // One sentence per photo: what can be seen, and what cannot.
+  photo_notes: {
+    type: "array",
+    items: obj({ photo: { type: "integer" }, note: { type: "string" } }),
+  },
+  // Read from the floor-plan photo, if there is one. photo = 0 when there is none.
+  floor_plan: obj({
+    photo: { type: "integer" },
+    rooms: { type: "array", items: point({ name: { type: "string" } }) },
+    warm_room: { type: "string" },
+    cold_route: { type: "array", items: point({}) },
+    cold_points: { type: "array", items: point({ name: { type: "string" }, why: { type: "string" } }) },
+    note: { type: "string" },
+  }),
   questions: {
     type: "array",
     items: obj({

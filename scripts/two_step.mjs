@@ -33,6 +33,8 @@ const ask = await post("/ask", baseBody);
 console.log("first_look:", ask.first_look);
 ask.questions.forEach((q) => console.log("Q", q.id, "|", q.why));
 ask.inferred.forEach((i) => console.log("INFERRED", i.id, "=", i.value, "|", i.basis));
+(ask.photo_notes || []).forEach((n) => console.log("NOTE", n.photo, "|", n.note));
+console.log("floor_plan:", JSON.stringify(ask.floor_plan));
 
 const seen = new Set();
 const questions = ask.questions.filter((q) => R.QUESTIONS[q.id] && !R.FIXED.includes(q.id) && !seen.has(q.id) && seen.add(q.id)).slice(0, 3);

@@ -92,7 +92,7 @@
       const c = document.createElement("canvas"); c.width = w; c.height = h;
       c.getContext("2d").drawImage(img, 0, 0, w, h);
       const dataUrl = c.toDataURL("image/jpeg", CFG.photoQuality); // re-encoded: no EXIF, no location
-      return { media_type: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl };
+      return { media_type: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, w, h };
     } finally { URL.revokeObjectURL(url); }
   }
   function S2() {
@@ -175,7 +175,9 @@
       const questions = (x.questions || []).filter((q) => R.QUESTIONS[q.id] && !R.FIXED.includes(q.id) && !seen.has(q.id) && seen.add(q.id)).slice(0, 3);
       const inferred = {};
       (x.inferred || []).forEach((i) => { if (R.QUESTIONS[i.id] && !seen.has(i.id) && R.QUESTIONS[i.id].options.includes(i.value) && i.value !== R.UNKNOWN) inferred[i.id] = { value: i.value, basis: i.basis }; });
-      state.ask = { first_look: x.first_look || "", questions, inferred: Object.entries(inferred).map(([id, v]) => ({ id, ...v })) };
+      const nPhotos = (state.sent || []).length;
+      const photo_notes = (x.photo_notes || []).filter((n) => n.photo >= 1 && n.photo <= nPhotos);
+      state.ask = { first_look: x.first_look || "", photo_notes, floor_plan: cleanPlan(x.floor_plan, nPhotos), questions, inferred: Object.entries(inferred).map(([id, v]) => ({ id, ...v })) };
       state.inferred = inferred; state.askKey = key; state.askFailed = false;
       SLook();
     } catch (e) {
@@ -184,13 +186,50 @@
     }
   }
 
+  // Keep only points that sit on the floor-plan photo (0-1000 on both axes).
+  function cleanPlan(fp, nPhotos) {
+    if (!fp || !(fp.photo >= 1 && fp.photo <= nPhotos)) return null;
+    const ok = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1000 && p.y >= 0 && p.y <= 1000;
+    const rooms = (fp.rooms || []).filter(ok).slice(0, 8);
+    const cold_route = (fp.cold_route || []).filter(ok).slice(0, 6);
+    const cold_points = (fp.cold_points || []).filter(ok).slice(0, 3);
+    if (!rooms.length && !cold_route.length && !cold_points.length) return null;
+    return { photo: fp.photo, rooms, warm_room: fp.warm_room || "", cold_route, cold_points, note: fp.note || "" };
+  }
+
+  // The floor-plan photo with rooms, the warm room, the route to the cold place and the cold spots drawn on it.
+  function planHtml() {
+    const fp = state.ask && state.ask.floor_plan;
+    const p = fp && state.photos[(state.sent || [])[fp.photo - 1]];
+    if (!fp || !p) return "";
+    // Claude's points are 0-1000 on both axes; the viewBox keeps the photo's aspect ratio so text is not squashed.
+    const H = p.w && p.h ? Math.round(1000 * p.h / p.w) : 1000;
+    const k = H / 1000;
+    const Y = (q) => Math.round(q.y * k);
+    const pt = (q) => `${q.x},${Y(q)}`;
+    // Room names are already on the drawing, so only the warm room is labelled; cold spots get numbered badges
+    // and are listed below the plan (text on a small photo would collide).
+    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="#d85a30" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
+    const warm = fp.rooms.find((r) => r.name === fp.warm_room) || (fp.cold_route.length ? { ...fp.cold_route[0], name: fp.warm_room } : null);
+    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="#e38a2a" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
+    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="#b4321e" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
+    return `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>
+      <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
+      ${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
+      ${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`;
+  }
+  function x_place() { return (state.result && state.result.place) || state.place || "寒い場所"; }
+
   function SLook() {
     screen = "SLook";
     const a = state.ask;
     const inf = a.inferred;
+    const notes = a.photo_notes || [];
     render(`
       <h1>写真と答えから、見えたこと</h1>
       <div class="card"><p class="lead">${esc(a.first_look)}</p></div>
+      ${planHtml() ? `<h3>間取り図に、寒さの道筋を重ねました</h3>${planHtml()}` : ""}
+      ${notes.length ? `<h3>写真ごとに見たこと</h3>${notes.map((n) => `<div class="card">${photoThumb(n.photo)}<span class="tag">写真${n.photo}：${esc(photoLabel(n.photo))}</span><p class="small">${esc(n.note)}</p></div>`).join("")}` : ""}
       ${inf.length ? `<h3>写真から読み取ったこと（答えなくて大丈夫です）</h3>${inf.map((i) => `<div class="card small"><b>${esc(R.QUESTIONS[i.id].text)}</b>：${esc(i.value)}<p class="muted">${esc(i.basis)}</p></div>`).join("")}` : ""}
       <button class="btn" id="next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button>
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
@@ -245,6 +284,7 @@
     render(`
       <h1>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h1>
       ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span><p>${esc(c.reason)}</p></div>`).join("")}
+      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml()}` : ""}
       ${x.photo_findings.length ? `<h2>写真で見つけたこと</h2>${x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p>${esc(f.note)}</p></div>`).join("")}` : ""}
       <div class="society">この家だけの話ではありません。国の推計では、今の断熱の基準を満たす家は約13％、無断熱の家は約29％です（既存住宅約5,000万戸。令和元年度時点の推計）。</div>
       <button class="btn" id="next">どう直す？</button>
