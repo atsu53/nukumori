@@ -5,9 +5,12 @@
   "compatibility_date": "2026-10-15",
   "compatibility_flags": ["nodejs_compat"],
   "observability": { "enabled": true },
+  // The PWA screens (web/) are served from the same Worker. Requests that do not
+  // match a file (POST /diagnose) go to worker/index.js.
+  "assets": { "directory": "./web" },
   "vars": {
-    // GitHub Pages origin, plus local dev servers. Not secret.
-    "ALLOWED_ORIGINS": "https://atsu53.github.io,http://localhost:8000,http://127.0.0.1:8000",
+    // The published origin (screens are served by this Worker), GitHub Pages, and local dev. Not secret.
+    "ALLOWED_ORIGINS": "https://nukumori-api.chaprec-transcribe.workers.dev,https://atsu53.github.io,http://localhost:8000,http://127.0.0.1:8000",
     "MODEL": "claude-opus-5-5",
     "EFFORT": "low"
   }

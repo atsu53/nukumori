@@ -3,7 +3,7 @@
 window.NUKUMORI_CONFIG = {
   apiBase: (location.hostname === "localhost" || location.hostname === "127.0.0.1")
     ? "http://127.0.0.1:8791"
-    : "https://nukumori-api.atsu53.workers.dev",
+    : "", // published: the screens and the API share one origin
   photoMaxEdge: 1200,
   photoQuality: 0.85,
 };
