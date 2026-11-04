@@ -34,7 +34,7 @@
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
   $back.addEventListener("click", () => backTarget && backTarget());
 
-  // Photos come first (2026-11-04), before the parent's words, so the slots do not depend on the place.
+  // Photos come first (2026-11-04), before the resident's words, so the slots do not depend on the place.
   function slots() {
     return [
       { key: 1, label: "窓を内側から", hint: "寒い部屋の窓。サッシとガラスが写るように" },
@@ -51,9 +51,9 @@
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
     render(`
-      <h1>離れて暮らす親の家の寒さを、建築士の目で診る</h1>
-      <p class="lead">実家の写真を撮って入れると、建築士の目で見た今の状態が分かります。親の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。</p>
-      <div class="steps"><div><b>1</b>写真を撮る</div><div><b>2</b>親の一言と質問</div><div><b>3</b>原因と改修案</div></div>
+      <h1>その一言から、家の寒さを建築士の目で診る</h1>
+      <p class="lead">家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。</p>
+      <div class="steps"><div><b>1</b>写真を撮る</div><div><b>2</b>一言と質問</div><div><b>3</b>原因と改修案</div></div>
       <p class="small muted">一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
       <p class="small muted">目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
       <p class="small muted">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
@@ -68,8 +68,8 @@
   function S1() {
     screen = "S1";
     render(`
-      <h1>親御さんは、なんて言っていましたか</h1>
-      <p class="small muted">写真は受け取りました。どこが寒いかを聞いてから、建築士の目で見ます。</p>
+      <h1>この家に住む人は、なんて言っていますか</h1>
+      <p class="small muted">あなた自身の言葉でも、家族から聞いた一言でも大丈夫です。写真は受け取りました。どこが寒いかを聞いてから、建築士の目で見ます。</p>
       <textarea id="words" placeholder="例：お風呂場がさむいんだよぉ">${esc(state.words)}</textarea>
       <p class="small muted">よくある一言（押すと入ります）</p>
       <div class="chips">
@@ -343,9 +343,9 @@
     const x = r();
     const bath = state.placeId === "bath" || (state.ruleResult && state.ruleResult.heat_shock_level !== "none");
     render(`
-      <h1>次の帰省で、見てほしいこと</h1>
+      <h1>次に家を見るとき、確かめてほしいこと</h1>
       <ul>${x.checks.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
-      <h2>親御さんへの一言</h2>
+      <h2>家族への一言</h2>
       <div class="card"><p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>
       ${bath ? `<div class="notice"><b>お風呂の寒さは、冬の事故につながります。</b><p class="small">消費者庁の注意喚起：入浴前に脱衣所や浴室を暖める。湯温は41度以下、湯につかるのは10分までを目安に。浴槽から急に立ち上がらない。入浴前に家族に声をかける。<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁のページ</a></p><p class="small muted">気になる症状があれば医師に相談してください。</p></div>` : ""}
       <button class="btn secondary" id="confirm">確かめてきたので、診断し直す</button>
@@ -372,7 +372,7 @@
     screen = "SConfirm";
     const x = r();
     render(`
-      <h1>帰省で、確かめてきたこと</h1>
+      <h1>家で、確かめてきたこと</h1>
       <p class="muted">見てきたことを、ひとつずつ書いてください。まだのものは空のままで大丈夫です。建築士が見立てを更新します。</p>
       ${x.checks.map((c, i) => `<div class="card"><p class="small">${esc(c)}</p><textarea class="confirm" data-i="${i}" rows="2" placeholder="見たこと・分かったこと（例：断熱材は見えなかった）"></textarea></div>`).join("")}
       <button class="btn" id="go" disabled>この内容で診断し直す</button>
@@ -393,7 +393,7 @@
     const a = state.answers;
     const lines = [];
     lines.push("工務店に見せる相談シート（nukumori で作成）", "家族が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。", "");
-    lines.push("■ 困っていること", `親の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
+    lines.push("■ 困っていること", `住む人の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
     lines.push("■ 家族が優先したいこと", `・工事の大きさ：${a.q9 || "未回答"}`);
     if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
     lines.push("");
@@ -413,7 +413,7 @@
       heatShockStages().forEach((s) => lines.push(`・段階${s.n}［${s.label}］${s.text}`));
     }
     if (state.confirmed && state.confirmed.some((c) => c.answer !== "まだ")) {
-      lines.push("", "■ 家族が帰省で確かめたこと");
+      lines.push("", "■ 家族が家で確かめたこと");
       state.confirmed.filter((c) => c.answer !== "まだ").forEach((c) => lines.push(`・${c.check} → ${c.answer}`));
     }
     lines.push("", "■ 現地で必ず確かめてほしいこと（見立ての前提になっている部分です）");
@@ -442,7 +442,7 @@
 
   function summaryText() {
     const x = r();
-    return [`「${state.words}」の寒さ診断（nukumori）`, "", "原因トップ3：", ...x.causes.map((c) => `${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || ""}）`), "", "まず相談するならこれ：", ...x.proposals.filter((p) => p.first_choice).map((p) => p.name), "", "今日からできること：", ...(x.today_actions || []).map((a) => `・${a.name}`), "", `親への一言：${x.message_to_parent}`].join("\n");
+    return [`「${state.words}」の寒さ診断（nukumori）`, "", "原因トップ3：", ...x.causes.map((c) => `${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || ""}）`), "", "まず相談するならこれ：", ...x.proposals.filter((p) => p.first_choice).map((p) => p.name), "", "今日からできること：", ...(x.today_actions || []).map((a) => `・${a.name}`), "", `家族への一言：${x.message_to_parent}`].join("\n");
   }
 
   async function copy(text, sel) {

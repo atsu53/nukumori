@@ -1,8 +1,8 @@
 # nukumori
 
-Diagnose why your parent's faraway house is cold, with an architect's eye.
+From one sentence someone in the house said, see why the house is cold, with an architect's eye.
 
-nukumori is a PWA for adult children whose parents live far away. Start from something your parent said ("the bathroom is freezing"), answer a few questions, optionally add photos, and get the top three likely causes of the cold plus renovation ideas in priority order.
+nukumori is a PWA for anyone worried about a cold house: your own, or the house of family who live far away (the most common case is an adult child looking at a parent's house). Take a few photos (a hand-drawn floor plan works), enter what the person living there said ("the bathroom is freezing"), answer the questions Claude picks after reading the photos, and get the top three likely causes, what to try tonight, and the renovation to talk to a builder about first. Check things at the house later and the diagnosis updates.
 
 Built for **Built with Claude: Japan 2026** (Nov 2–8, 2026). All code in this repository was written during the event.
 
@@ -38,7 +38,7 @@ Ten cases (the developer's family home with photos and a hand-drawn floor plan, 
 
 ## 日本語
 
-離れて暮らす親の家の寒さを、子ども世代が建築士の目で診るアプリです。親の一言から始めて、いくつかの質問と任意の写真で、寒さの原因トップ3と優先順位つきの改修案を出します。
+住む人の一言から、家の寒さを建築士の目で診るアプリです。自分の家にも、離れて暮らす家族の家にも使えます（いちばん多いのは、離れて暮らす親の家を子どもが見る使い方です）。親の一言から始めて、いくつかの質問と任意の写真で、寒さの原因トップ3と優先順位つきの改修案を出します。
 
 Built with Claude: Japan 2026（2026年11月2日〜8日）の作品です。このリポジトリのコードはすべて期間中に書きました。
 

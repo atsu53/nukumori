@@ -5,7 +5,7 @@
 window.NUKUMORI_RULES = (() => {
   const UNKNOWN = "分からない";
 
-  // ---------- places and time of day from the parent's words (SCREENS S1) ----------
+  // ---------- places and time of day from the resident's words (SCREENS S1) ----------
   const PLACES = [
     { id: "bath", label: "浴室・脱衣所", words: ["風呂", "ふろ", "浴室", "脱衣", "洗面", "シャワー"] },
     { id: "bedroom", label: "寝室", words: ["寝室", "布団", "ふとん", "ベッド", "寝る", "寝て", "起き"] },
