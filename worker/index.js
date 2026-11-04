@@ -11,7 +11,7 @@ import { ASK_SCHEMA, DIAGNOSIS_SCHEMA } from "./schema.js";
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTOS = 5;
 const MAX_PHOTO_B64 = 1_500_000; // about 1.1 MB per resized photo
-const MAX_TEXT_JSON = 8_000; // answers + rule result
+const MAX_TEXT_JSON = 24_000; // answers, rule result, ask, and on a re-diagnosis the previous result
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 // Best-effort burst limit per isolate. Generous on purpose: judges will use it too.
@@ -50,20 +50,20 @@ function rateLimited(request) {
 // Returns { input } or { error }.
 function validate(body) {
   if (!body || typeof body !== "object") return { error: "bad_request" };
-  const { parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, photos = [] } = body;
+  const { parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, previous = null, confirmed = [], photos = [] } = body;
   if (typeof parent_words !== "string" || parent_words.length > 300) return { error: "bad_parent_words" };
   if (typeof place !== "string" || place.length > 50) return { error: "bad_place" };
   if (typeof time_of_day !== "string" || time_of_day.length > 50) return { error: "bad_time_of_day" };
   if (typeof fixed !== "object" || typeof answers !== "object" || typeof rule_result !== "object" || typeof ask !== "object") return { error: "bad_answers" };
-  if (!Array.isArray(inferred_from_photos)) return { error: "bad_answers" };
-  if (JSON.stringify({ fixed, answers, inferred_from_photos, ask, rule_result }).length > MAX_TEXT_JSON) return { error: "too_long" };
+  if (!Array.isArray(inferred_from_photos) || !Array.isArray(confirmed) || typeof previous !== "object") return { error: "bad_answers" };
+  if (JSON.stringify({ fixed, answers, inferred_from_photos, ask, rule_result, previous, confirmed }).length > MAX_TEXT_JSON) return { error: "too_long" };
   if (!Array.isArray(photos) || photos.length > MAX_PHOTOS) return { error: "too_many_photos" };
   for (const p of photos) {
     if (!p || typeof p.data !== "string" || typeof p.label !== "string") return { error: "bad_photo" };
     if (!IMAGE_TYPES.includes(p.media_type)) return { error: "bad_photo_type" };
     if (p.data.length > MAX_PHOTO_B64 || p.label.length > 40) return { error: "photo_too_large" };
   }
-  return { input: { parent_words, place, time_of_day, fixed, answers, inferred_from_photos, ask, rule_result, photos } };
+  return { input: { parent_words, place, time_of_day, fixed, answers, inferred_from_photos, ask, rule_result, previous, confirmed, photos } };
 }
 
 // The photos and the fixed answers come first and are byte-identical in the ask and the
@@ -79,8 +79,9 @@ function buildContent(input, step) {
   if (step === "ask") {
     content.push({ type: "text", text: JSON.stringify({ step }) });
   } else {
-    const { answers, inferred_from_photos, ask, rule_result } = input;
-    content.push({ type: "text", text: JSON.stringify({ step, ask, answers, inferred_from_photos, rule_result }) });
+    const { answers, inferred_from_photos, ask, rule_result, previous, confirmed } = input;
+    const extra = previous ? { previous, confirmed } : {};
+    content.push({ type: "text", text: JSON.stringify({ step, ask, answers, inferred_from_photos, rule_result, ...extra }) });
   }
   return content;
 }

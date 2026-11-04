@@ -121,4 +121,14 @@ export const DIAGNOSIS_SCHEMA = obj({
     }),
   },
   message_to_parent: { type: "string" },
+  // Re-diagnosis only (previous + confirmed were sent): what changed and why. Empty on a first diagnosis.
+  changes: {
+    type: "array",
+    items: obj({
+      what: { type: "string" },
+      before: { type: "string" },
+      after: { type: "string" },
+      why: { type: "string" },
+    }),
+  },
 });
