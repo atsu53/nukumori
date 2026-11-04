@@ -34,7 +34,7 @@
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
   $back.addEventListener("click", () => backTarget && backTarget());
 
-  // Photos come first (2026-11-05), before the parent's words, so the slots do not depend on the place.
+  // Photos come first (2026-11-04), before the parent's words, so the slots do not depend on the place.
   function slots() {
     return [
       { key: 1, label: "窓を内側から", hint: "寒い部屋の窓。サッシとガラスが写るように" },
