@@ -1,9 +1,11 @@
-// Re-diagnosis test: send the previous result plus what the family checked, without photos.
-//   node scripts/rediagnose.mjs <two_step result json> [answers json]
+// Re-diagnosis test: send the previous result plus what the family checked.
+//   node scripts/rediagnose.mjs <two_step result json> [answers json] [output json]
 // The result json is what scripts/two_step.mjs wrote. The answers json is an array of strings,
 // one per check (in order); "" means not checked yet. Without it, the checks are listed.
+// The photos are sent again, as the page does, when the result json records their paths.
 
 import { readFileSync, writeFileSync } from "node:fs";
+import { extname } from "node:path";
 
 const prev = JSON.parse(readFileSync(process.argv[2], "utf8"));
 const answersFile = process.argv[3];
@@ -25,12 +27,14 @@ const previous = {
   today_actions: (r.today_actions || []).map((a) => a.name),
 };
 const a = prev.answers;
+const types = { ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png", ".webp": "image/webp" };
+const photos = (prev.photo_paths || []).map((path, i) => ({ label: (prev.photo_labels || [])[i] || `写真${i + 1}`, media_type: types[extname(path).toLowerCase()], data: readFileSync(path).toString("base64") }));
 const body = {
   parent_words: prev.parent_words || "お風呂場がさむいんだよぉ。脱衣所で着替えるときが一番つらい",
   place: prev.place || "浴室・脱衣所",
   time_of_day: prev.time_of_day || "入浴時",
   fixed: { q0: a.q0 || "", q1: a.q1 || "", q9: a.q9 || "" },
-  photos: [],
+  photos,
   answers: a,
   inferred_from_photos: prev.inferredIds || [],
   ask: prev.ask ? { first_look: prev.ask.first_look, questions: prev.ask.questions, inferred: prev.ask.inferred } : null,
