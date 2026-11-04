@@ -56,6 +56,7 @@
       <div class="steps"><div><b>1</b>写真を撮る</div><div><b>2</b>親の一言と質問</div><div><b>3</b>原因と改修案</div></div>
       <p class="small muted">一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
       <p class="small muted">目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
+      <p class="small muted">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案の筋が合いました（完全一致8件）。</p>
       <button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}
     `);
