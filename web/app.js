@@ -292,7 +292,7 @@
       ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span><p>${esc(c.reason)}</p></div>`).join("")}
       ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml()}` : ""}
       ${x.photo_findings.length ? `<h2>写真で見つけたこと</h2>${x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p>${esc(f.note)}</p></div>`).join("")}` : ""}
-      <div class="society">この家だけの話ではありません。国の推計では、今の断熱の基準を満たす家は約13％、無断熱の家は約29％です（既存住宅約5,000万戸。令和元年度時点の推計）。</div>
+      <div class="society">この家だけの話ではありません。国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（住宅約5,400万戸。令和4年度時点の推計）。</div>
       <button class="btn" id="next">どう直す？</button>
     `, { back: S0, foot: true });
     on("#next", "click", S6);
@@ -418,6 +418,7 @@
     }
     lines.push("", "■ 現地で必ず確かめてほしいこと（見立ての前提になっている部分です）");
     x.checks.forEach((c) => lines.push(`・${c}`));
+    lines.push("・（どの家でも）脱衣所や浴室に暖房をつけるときは、分電盤の空き回路と容量／内窓をつけるときは、今の窓枠の奥行で取り付けられるか");
     lines.push("", "■ 見積のときに分けてほしいこと", "・工事の範囲／製品と性能／撤去・復旧／調査費／追加工事になる条件／補助制度の扱い／浴室が使えない期間／保証");
     lines.push("", "■ 補助制度について", "・国の住宅省エネ2026キャンペーン（先進的窓リノベ2026事業など）と自治体の補助が使える可能性があります。対象・金額・期限は年度で変わるので、公式サイトと窓口で最新を確かめてください。このシートには金額を書いていません");
     return lines.join("\n");
