@@ -101,7 +101,7 @@
     render(`
       <h1>${isSelf() ? "どこが寒いですか" : "家族は、なんて言っていますか"}</h1>
       <p class="small muted">${isSelf() ? "思ったままの言葉で大丈夫です。" : "聞いた言葉のままで大丈夫です。"}</p>
-      <textarea id="words" placeholder="${isSelf() ? "例：お風呂場が寒い" : "例：お風呂場がさむいんだよぉ"}">${esc(state.words)}</textarea>
+      <textarea id="words" placeholder="例：お風呂場が寒いです">${esc(state.words)}</textarea>
       <p class="small muted">よくある一言（押すと入ります）</p>
       <div class="chips">
         ${["お風呂場が寒い", "脱衣所で着替えるのがつらい", "朝、台所が冷蔵庫みたい", "寝室が寒くて眠れない", "こたつから出られない", "廊下とトイレが寒い", "家じゅう寒い"].map((t) => `<button class="chip" data-t="${esc(t)}">${esc(t)}</button>`).join("")}
