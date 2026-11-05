@@ -180,6 +180,11 @@
   const SIZE_N = { small: 1, medium: 2, large: 3 };
   const size = (s) => (SIZE_N[s] ? meter(SIZE_N[s]).replace('class="strip"', 'class="mini"') : "");
 
+  // Whose house (the first choice): a person inside the house, or a person away from it.
+  const WHO = {
+    self: () => svg(`<path d="M8 30 L32 10 L56 30 V56 H8 Z" fill="${PAPER}"/><circle cx="32" cy="30" r="5.5"/><path d="M22 50 c0 -9 5 -12 10 -12 s10 3 10 12" fill="#f6dcc4"/>`),
+    family: () => svg(`<path d="M28 28 L42 16 L56 28 V50 H28 Z" fill="${PAPER}"/><rect x="38" y="38" width="8" height="12"/><circle cx="14" cy="32" r="5"/><path d="M6 54 c0 -9 4 -13 8 -13 s8 4 8 13" fill="#f6dcc4"/><path d="M4 22 q10 -10 20 0" stroke="${WARM}" stroke-dasharray="1 5" stroke-width="2.5"/>`),
+  };
   const logo = () => `<svg class="logo" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 18 L18 46 H28 V76 H68 V46 H78 Z" fill="none" stroke="${WARM}" stroke-width="7" stroke-linejoin="round"/><path d="M40 72 C40 60 56 58 56 46 C56 40 52 36 48 34 C50 42 44 46 42 50 C38 56 38 62 40 72 Z" fill="${WARM}"/></svg>`;
 
   // ---------- the scan while Claude reads the photos ----------
@@ -212,5 +217,5 @@
   }
 
   const planColors = { route: "#d85a30", warm: "#e38a2a", cold: "#b4321e" };
-  window.NUKUMORI_ART = { planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
+  window.NUKUMORI_ART = { who: (k) => WHO[k](), planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
 })();

@@ -11,6 +11,7 @@
   const STORE = "nukumori:last";
 
   const state = {
+    who: "family", // whose house: "self" or "family" (asked first; the words on the screens follow it)
     words: "", place: "", placeId: "", time: "",
     photos: {}, // slot -> { label, media_type, data (base64), preview }
     answers: {}, qIndex: 0,
@@ -36,6 +37,17 @@
     window.scrollTo(0, 0);
   }
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
+  const isSelf = () => state.who === "self";
+  // Long text folds: the first sentence stays, the rest opens on くわしく. A sentence with a safety point is
+  // never hidden (heater, ventilation, bath temperature), so those stay on screen.
+  const SAFETY = /消す|消して|守って|換気|火|やけど|離れ|一酸化|声をかけ|41度|10分|入らない|無理/;
+  const more = (inner, label = "くわしく") => `<details class="more"><summary>${esc(label)}</summary>${inner}</details>`;
+  function fold(text) {
+    const parts = String(text || "").match(/[^。]+。?/g) || [];
+    const shown = [], rest = [];
+    parts.forEach((p, i) => ((i === 0 || SAFETY.test(p)) ? shown : rest).push(p));
+    return `<p>${esc(shown.join(""))}</p>${rest.length ? more(`<p class="small">${esc(rest.join(""))}</p>`) : ""}`;
+  }
   $back.addEventListener("click", () => backTarget && backTarget());
 
   // Photos come first (2026-11-04), before the resident's words, so the slots do not depend on the place.
@@ -54,13 +66,8 @@
     screen = "S0";
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
-    const lead = "家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。";
+    const lead = "写真と一言から、家の寒さの原因と、まず相談したい直し方が分かります。";
     const steps = [["写真を撮る", "photo"], ["一言と質問", "words"], ["原因と改修案", "result"]];
-    const notes = [
-      "一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。",
-      "目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。",
-      "10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。",
-    ];
     const buttons = `<button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}`;
     render(`
@@ -68,20 +75,33 @@
       <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
       <p class="lead">${lead}</p>
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
-      ${notes.map((n) => `<p class="small muted">${n}</p>`).join("")}
       ${buttons}
+      <p class="small muted center">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
     `);
-    on("#start", "click", () => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {} }); S2(); });
+    on("#start", "click", SWho);
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
+  }
+
+  // ---------- whose house: one tap, and the words on the screens follow it ----------
+  function SWho() {
+    screen = "SWho";
+    render(`
+      <h1>どの家を診ますか</h1>
+      <div class="choices tiles">
+        <button class="choice tile" data-who="family">${A.who("family")}<span>離れて暮らす<br>家族の家</span></button>
+        <button class="choice tile" data-who="self">${A.who("self")}<span>自分の家</span></button>
+      </div>
+    `, { back: S0 });
+    on("[data-who]", "click", (e) => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {}, who: e.currentTarget.dataset.who }); S2(); });
   }
 
   // ---------- S1 ----------
   function S1() {
     screen = "S1";
     render(`
-      <h1>この家に住む人は、なんて言っていますか</h1>
-      <p class="small muted">あなた自身の言葉でも、家族から聞いた一言でも大丈夫です。写真は受け取りました。どこが寒いかを聞いてから、建築士の目で見ます。</p>
-      <textarea id="words" placeholder="例：お風呂場がさむいんだよぉ">${esc(state.words)}</textarea>
+      <h1>${isSelf() ? "どこが寒いですか" : "家族は、なんて言っていますか"}</h1>
+      <p class="small muted">${isSelf() ? "思ったままの言葉で大丈夫です。" : "聞いた言葉のままで大丈夫です。"}</p>
+      <textarea id="words" placeholder="${isSelf() ? "例：お風呂場が寒い" : "例：お風呂場がさむいんだよぉ"}">${esc(state.words)}</textarea>
       <p class="small muted">よくある一言（押すと入ります）</p>
       <div class="chips">
         ${["お風呂場が寒い", "脱衣所で着替えるのがつらい", "朝、台所が冷蔵庫みたい", "寝室が寒くて眠れない", "こたつから出られない", "廊下とトイレが寒い", "家じゅう寒い"].map((t) => `<button class="chip" data-t="${esc(t)}">${esc(t)}</button>`).join("")}
@@ -135,21 +155,26 @@
     screen = "S2";
     const list = slots();
     render(`
-      <h1>まず、実家の写真を撮ってください</h1>
-      <p class="muted">建築士が写真と間取り図を見てから、聞くことを決めます。なくても進めますが、あるほど原因が絞れます。</p>
+      <h1>まず、家の写真を入れてください</h1>
+      <p class="muted">${isSelf() ? "撮るか、スマホの写真から選びます。" : "撮るか、送ってもらった写真を選びます。"}写真を見てから、聞くことを決めます。なくても進めます。</p>
       <div class="photo-slots">
         ${list.map((s) => {
           const p = state.photos[s.key];
           return `<div class="slot" data-k="${s.key}">
             ${p ? `<img src="${p.preview}" alt="">` : `<div class="empty">${A.slot(s.key)}</div>`}
-            <div><b>${esc(s.label)}</b><div class="small muted">${esc(s.hint)}</div>${p ? `<button class="link small" data-del="${s.key}">外す</button>` : ""}</div>
-            <label class="btn secondary">${p ? "撮り直す" : "撮る・選ぶ"}<input type="file" accept="image/*" data-k="${s.key}"></label>
+            <div><b>${esc(s.label)}</b><div class="small muted">${esc(s.hint)}</div>
+              <div class="slot-btns">
+                <label class="btn secondary">撮る<input type="file" accept="image/*" capture="environment" data-k="${s.key}"></label>
+                <label class="btn secondary">選ぶ<input type="file" accept="image/*" data-k="${s.key}"></label>
+                ${p ? `<button class="link small" data-del="${s.key}">外す</button>` : ""}
+              </div>
+            </div>
           </div>`;
         }).join("")}
       </div>
-      <div class="notice small">送る前に：顔・表札・書類・図面の住所が写っていませんか。写っていれば外すか撮り直してください。写真は端末で小さくしてから送り、位置情報は付けません。</div>
+      <div class="notice small">顔・表札・住所が写っていたら、外すか撮り直してください。写真に位置情報は付けず、サーバーに保存しません。</div>
       <button class="btn" id="next">${Object.keys(state.photos).length ? "次へ" : "写真なしで進む"}</button>
-    `, { back: S0 });
+    `, { back: SWho });
     on("input[type=file]", "change", async (e) => {
       const f = e.target.files[0]; if (!f) return;
       const k = e.target.dataset.k;
@@ -198,12 +223,12 @@
     return state.sent.map((k) => ({ label: state.photos[k].label, media_type: state.photos[k].media_type, data: state.photos[k].data }));
   }
   function fixedAnswers() { return Object.fromEntries(R.FIXED.map((q) => [q, state.answers[q] || ""])); }
-  function baseBody() { return { parent_words: state.words, place: state.place, time_of_day: state.time, fixed: fixedAnswers(), photos: sentPhotos() }; }
+  function baseBody() { return { who: isSelf() ? "self" : "family", parent_words: state.words, place: state.place, time_of_day: state.time, fixed: fixedAnswers(), photos: sentPhotos() }; }
 
   // ---------- S3a Claude reads the photos and picks 2-3 questions (/ask) ----------
   async function SAsk() {
     screen = "SAsk";
-    const key = JSON.stringify([state.words, fixedAnswers(), Object.keys(state.photos).sort(), Object.values(state.photos).map((p) => p.data.length)]);
+    const key = JSON.stringify([state.who, state.words, fixedAnswers(), Object.keys(state.photos).sort(), Object.values(state.photos).map((p) => p.data.length)]);
     if (state.ask && state.askKey === key) return SLook();
     state.ask = null; state.inferred = {};
     render(`
@@ -244,7 +269,7 @@
   }
 
   // The floor-plan photo with rooms, the warm room, the route to the cold place and the cold spots drawn on it.
-  function planHtml() {
+  function planHtml(compact) {
     const fp = state.ask && state.ask.floor_plan;
     const p = fp && state.photos[(state.sent || [])[fp.photo - 1]];
     if (!fp || !p) return "";
@@ -261,8 +286,10 @@
     const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
     return `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>
       <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
-      ${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
-      ${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`;
+      ${compact
+        ? `<p class="small">${fp.cold_points.map((c, i) => `<span class="rank">${i + 1}</span><b>${esc(c.name)}</b>`).join("　")}</p>${more(`${fp.cold_points.map((c, i) => `<p class="small"><b>${i + 1}. ${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`)}`
+        : `${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
+      ${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`}`;
   }
   function x_place() { return (state.result && state.result.place) || state.place || "寒い場所"; }
 
@@ -326,7 +353,7 @@
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
-    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`;
+    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です（模式図）。</p>`;
   }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
@@ -346,10 +373,10 @@
       ${x.changes && x.changes.length ? `${changesHtml(x.changes)}
       <h2>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h2>` : `<h1>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h1>`}
       ${causeHouse(x)}
-      ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span><p>${esc(c.reason)}</p></div>`).join("")}
-      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml()}` : ""}
-      ${x.photo_findings.length ? `<h2>写真で見つけたこと</h2>${x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p>${esc(f.note)}</p></div>`).join("")}` : ""}
-      <div class="society">この家だけの話ではありません。国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（住宅約5,400万戸。令和4年度時点の推計）。</div>
+      ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span>${fold(c.reason)}</div>`).join("")}
+      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml(true)}` : ""}
+      ${x.photo_findings.length ? more(x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p class="small">${esc(f.note)}</p></div>`).join(""), `写真で見つけたこと（${x.photo_findings.length}枚）`) : ""}
+      <div class="society">国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（令和4年度時点）。</div>
       <button class="btn" id="next">どう直す？</button>
     `, { back: S0, foot: true });
     on("#next", "click", S6);
@@ -378,17 +405,17 @@
     const bathStages = state.ruleResult && state.ruleResult.heat_shock_level !== "none" ? heatShockStages() : null;
     render(`
       <h1>まず相談するなら、これ</h1>
-      ${x.today_actions && x.today_actions.length ? `<h3>今日からできること（工事なし）</h3>${x.today_actions.map((a) => `<div class="card"><b>${esc(a.name)}</b><p>${esc(a.description)}</p></div>`).join("")}` : ""}
-      <h3>工務店に相談する改修案（優先順）</h3>
-      ${x.proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談するならこれ</span>` : ""}
-        <p>${esc(p.description)}</p>
-        <p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>
-        <p class="small"><span class="tag">${A.size(p.work_size)}工事の大きさ：${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>
-        <p class="small muted">なぜこの順位か：${esc(p.why_this_rank)}</p></div>`).join("")}
-      ${bathStages ? `<h3>お風呂の寒さ対策は、この順で進みます</h3>
-      ${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
-      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>` : ""}
-      <p class="small muted">補助制度は年度ごとに内容が変わります。最新は国の「住宅省エネ2026キャンペーン」の公式サイトと自治体の窓口で確認してください。費用の金額はここでは出しません。工務店の見積りで確かめてください。</p>
+      ${x.proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談</span>` : ""}
+        <p class="small"><span class="tag">${A.size(p.work_size)}${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span></p>
+        ${p.first_choice ? `<p class="small">${esc(p.expected_change)}</p>` : ""}
+        ${more(`<p class="small">${esc(p.description)}</p>
+        ${p.first_choice ? "" : `<p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>`}
+        <p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>
+        <p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`)}</div>`).join("")}
+      ${x.today_actions && x.today_actions.length ? `<h3>今日からできること（工事なし）</h3>${x.today_actions.map((a) => `<div class="card"><b>${esc(a.name)}</b>${fold(a.description)}</div>`).join("")}` : ""}
+      ${bathStages ? more(`${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
+      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>`, "お風呂の寒さ対策の順番") : ""}
+      <p class="small muted">費用の金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、国の「住宅省エネ2026キャンペーン」の公式サイトと自治体の窓口で最新を確かめてください。</p>
       ${x.rule_overrides && x.rule_overrides.length ? `<details class="small"><summary class="muted">建築士のルールから変えたところ</summary><ul>${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul></details>` : ""}
       <button class="btn" id="next">確認してほしいこと</button>
     `, { back: S5, foot: true });
@@ -400,10 +427,10 @@
     const x = r();
     const bath = state.placeId === "bath" || (state.ruleResult && state.ruleResult.heat_shock_level !== "none");
     render(`
-      <h1>次に家を見るとき、確かめてほしいこと</h1>
+      <h1>${isSelf() ? "家で確かめてほしいこと" : "次に家を見るとき、確かめてほしいこと"}</h1>
       <ul>${x.checks.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
-      <h2>家族への一言</h2>
-      <div class="card"><p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>
+      ${isSelf() || !x.message_to_parent ? "" : `<h2>家族への一言</h2>
+      <div class="card"><p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
       ${bath ? `<div class="notice"><b>お風呂の寒さは、冬の事故につながります。</b><p class="small">消費者庁の注意喚起：入浴前に脱衣所や浴室を暖める。湯温は41度以下、湯につかるのは10分までを目安に。浴槽から急に立ち上がらない。入浴前に家族に声をかける。<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁のページ</a></p><p class="small muted">気になる症状があれば医師に相談してください。</p></div>` : ""}
       <button class="btn secondary" id="confirm">確かめてきたので、診断し直す</button>
       <button class="btn" id="next">保存・共有</button>
@@ -449,12 +476,13 @@
     const x = r();
     const a = state.answers;
     const lines = [];
-    lines.push("工務店に見せる相談シート（nukumori で作成）", "家族が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。", "");
+    const fam = isSelf() ? "住んでいる本人" : "家族";
+    lines.push("工務店に見せる相談シート（nukumori で作成）", `${fam}が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。`, "");
     lines.push("■ 困っていること", `住む人の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
-    lines.push("■ 家族が優先したいこと", `・工事の大きさ：${a.q9 || "未回答"}`);
+    lines.push(`■ ${fam}が優先したいこと`, `・工事の大きさ：${a.q9 || "未回答"}`);
     if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
     lines.push("");
-    lines.push("■ 家族が確認したこと（質問の答え）");
+    lines.push(`■ ${fam}が確認したこと（質問の答え）`);
     qList().filter((q) => q !== "q9" && q !== "q10").forEach((q) => lines.push(`・${R.QUESTIONS[q].text}：${a[q] || "未回答"}`));
     Object.entries(state.inferred || {}).filter(([q]) => !a[q]).forEach(([q, v]) => lines.push(`・${R.QUESTIONS[q].text}：${v.value}（写真からの AI の推定。要確認）`));
     lines.push("", "■ AI の見立て（目安。写真と答えからの推測で、現地では違うことがあります）");
@@ -470,7 +498,7 @@
       heatShockStages().forEach((s) => lines.push(`・段階${s.n}［${s.label}］${s.text}`));
     }
     if (state.confirmed && state.confirmed.some((c) => c.answer !== "まだ")) {
-      lines.push("", "■ 家族が家で確かめたこと");
+      lines.push("", `■ ${fam}が家で確かめたこと`);
       state.confirmed.filter((c) => c.answer !== "まだ").forEach((c) => lines.push(`・${c.check} → ${c.answer}`));
     }
     lines.push("", "■ 現地で必ず確かめてほしいこと（見立ての前提になっている部分です）");
@@ -486,7 +514,7 @@
     render(`
       <h1>手元に残す・伝える</h1>
       <div class="card"><b>この端末に保存しました</b><p class="small muted">最初の画面の「前回の結果を見る」から戻れます。写真は保存しません。</p></div>
-      <div class="card"><b>工務店に見せる相談シート</b><p class="small muted">家族が確かめたことと、AI の推測を分けた文面です。コピーして LINE やメールに貼れます。</p>
+      <div class="card"><b>工務店に見せる相談シート</b><p class="small muted">確かめたことと、AI の推測を分けた文面です。コピーして LINE やメールに貼れます。</p>
         <button class="btn secondary" id="copySheet">相談シートをコピー</button>
         <details class="small"><summary class="muted">文面を見る</summary><div class="sheet">${esc(sheetText())}</div></details></div>
       <button class="btn secondary" id="copyAll">結果の要約をコピー</button>
@@ -499,7 +527,7 @@
 
   function summaryText() {
     const x = r();
-    return [`「${state.words}」の寒さ診断（nukumori）`, "", "原因トップ3：", ...x.causes.map((c) => `${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || ""}）`), "", "まず相談するならこれ：", ...x.proposals.filter((p) => p.first_choice).map((p) => p.name), "", "今日からできること：", ...(x.today_actions || []).map((a) => `・${a.name}`), "", `家族への一言：${x.message_to_parent}`].join("\n");
+    return [`「${state.words}」の寒さ診断（nukumori）`, "", "原因トップ3：", ...x.causes.map((c) => `${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || ""}）`), "", "まず相談するならこれ：", ...x.proposals.filter((p) => p.first_choice).map((p) => p.name), "", "今日からできること：", ...(x.today_actions || []).map((a) => `・${a.name}`), ...(isSelf() ? [] : ["", `家族への一言：${x.message_to_parent}`])].join("\n");
   }
 
   async function copy(text, sel) {

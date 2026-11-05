@@ -50,7 +50,12 @@ p { margin: 8px 0; }
 h1.title { font-size: 26px; margin-top: 2px; }
 .house-wrap { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 6px 6px 2px; margin: 10px 0 4px; }
 .house-cap { font-size: 13px; color: var(--muted); margin: 4px 2px 12px; }
-.card .prop { float: right; width: 56px; height: 56px; margin: -2px 0 6px 10px; }
+.card .prop { float: right; width: 64px; height: 64px; margin: -2px 0 6px 10px; }
+.center { text-align: center; }
+/* long text opens on くわしく */
+details.more { margin: 6px 0 0; }
+details.more > summary { color: var(--accent); font-size: 14px; font-weight: 700; cursor: pointer; padding: 6px 0; }
+.screen > details.more { background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 16px; margin: 10px 0; }
 .mini { width: 46px; height: 11px; vertical-align: -1px; margin-right: 5px; }
 .btn { display: block; width: 100%; min-height: 52px; border: 0; border-radius: var(--radius); background: var(--accent); color: var(--accent-ink); font-size: 17px; font-weight: 700; padding: 12px 16px; margin: 12px 0; cursor: pointer; box-shadow: 0 8px 18px -10px rgba(200,103,43,.8); transition: transform .08s ease; }
 .btn:active { transform: translateY(1px); }
@@ -82,11 +87,13 @@ textarea { min-height: 88px; resize: vertical; }
 .tag { display: inline-block; font-size: 13px; border: 1px solid var(--line); border-radius: 6px; padding: 1px 8px; margin-right: 6px; color: var(--muted); }
 .tag.strong { color: var(--ok); border-color: var(--ok); }
 .photo-slots { display: grid; gap: 10px; }
-.slot { display: grid; grid-template-columns: 88px 1fr auto; gap: 10px; align-items: center; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
+.slot { display: grid; grid-template-columns: 88px 1fr; gap: 12px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px; }
 .slot img { width: 88px; height: 88px; object-fit: cover; border-radius: 8px; background: #eee; }
 .slot .empty { width: 88px; height: 88px; border-radius: 8px; background: #faf6ef; border: 1.5px dashed #d8cdbf; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
 .slot .empty .pic { width: 54px; height: 54px; opacity: .85; }
-.slot label.btn { margin: 0; min-height: 44px; padding: 8px 12px; font-size: 15px; }
+.slot-btns { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+.slot label.btn { margin: 0; width: auto; min-height: 44px; min-width: 64px; padding: 9px 12px; font-size: 15px; text-align: center; }
+.slot .link { padding: 0 2px; margin-left: auto; font-size: 14px; }
 .slot input[type=file] { display: none; }
 .thumb { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; float: right; margin-left: 8px; }
 .notice { background: #fff4e5; border: 1px solid #f0d4b0; border-radius: var(--radius); padding: 12px 14px; margin: 12px 0; }

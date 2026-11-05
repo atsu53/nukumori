@@ -50,7 +50,8 @@ function rateLimited(request) {
 // Returns { input } or { error }.
 function validate(body) {
   if (!body || typeof body !== "object") return { error: "bad_request" };
-  const { parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, previous = null, confirmed = [], photos = [] } = body;
+  const { who = "family", parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, previous = null, confirmed = [], photos = [] } = body;
+  if (who !== "family" && who !== "self") return { error: "bad_who" };
   if (typeof parent_words !== "string" || parent_words.length > 300) return { error: "bad_parent_words" };
   if (typeof place !== "string" || place.length > 50) return { error: "bad_place" };
   if (typeof time_of_day !== "string" || time_of_day.length > 50) return { error: "bad_time_of_day" };
@@ -63,7 +64,7 @@ function validate(body) {
     if (!IMAGE_TYPES.includes(p.media_type)) return { error: "bad_photo_type" };
     if (p.data.length > MAX_PHOTO_B64 || p.label.length > 40) return { error: "photo_too_large" };
   }
-  return { input: { parent_words, place, time_of_day, fixed, answers, inferred_from_photos, ask, rule_result, previous, confirmed, photos } };
+  return { input: { who, parent_words, place, time_of_day, fixed, answers, inferred_from_photos, ask, rule_result, previous, confirmed, photos } };
 }
 
 // The photos and the fixed answers come first and are byte-identical in the ask and the
@@ -74,8 +75,8 @@ function buildContent(input, step) {
     content.push({ type: "text", text: `写真${i + 1}：${p.label}` });
     content.push({ type: "image", source: { type: "base64", media_type: p.media_type, data: p.data } });
   });
-  const { parent_words, place, time_of_day, fixed } = input;
-  content.push({ type: "text", text: JSON.stringify({ parent_words, place, time_of_day, fixed, photo_count: input.photos.length }), cache_control: { type: "ephemeral" } });
+  const { who, parent_words, place, time_of_day, fixed } = input;
+  content.push({ type: "text", text: JSON.stringify({ who, parent_words, place, time_of_day, fixed, photo_count: input.photos.length }), cache_control: { type: "ephemeral" } });
   if (step === "ask") {
     content.push({ type: "text", text: JSON.stringify({ step }) });
   } else {
