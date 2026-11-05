@@ -32,7 +32,6 @@
     $progress.hidden = !progress;
     $foot.hidden = !foot;
     if ($bar) { $bar.hidden = bar === null; $bar.firstElementChild.style.width = `${Math.round((bar || 0) * 100)}%`; }
-    $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter"); // replay the slide-in
     window.scrollTo(0, 0);
   }
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
@@ -55,15 +54,18 @@
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
     render(`
-      <div class="hero">${A.house({ mode: "cover" })}</div>
-      <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
+      <h1 class="title">その一言から、<br>家の寒さを<br>建築士の目で診る</h1>
+      <div class="frame">${A.house({ mode: "cover" })}</div>
+      <div class="caption"><span class="lbl">SECTION</span><span class="lbl">断面図・模式</span></div>
       <p class="lead">家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。</p>
-      <div class="steps"><div>${A.step("photo")}<span class="n">1</span>写真を撮る</div><div>${A.step("words")}<span class="n">2</span>一言と質問</div><div>${A.step("result")}<span class="n">3</span>原因と改修案</div></div>
-      <p class="small muted">一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
-      <p class="small muted">目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
-      <p class="small muted">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
+      <div class="steps"><div><span class="num">01</span><span class="s">写真を撮る</span></div><div><span class="num">02</span><span class="s">一言と質問</span></div><div><span class="num">03</span><span class="s">原因と改修案</span></div></div>
       <button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}
+      <div class="notes">
+        <p>一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
+        <p>目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
+        <p>10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
+      </div>
     `);
     on("#start", "click", () => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {} }); S2(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
@@ -227,10 +229,10 @@
     const pt = (q) => `${q.x},${Y(q)}`;
     // Room names are already on the drawing, so only the warm room is labelled; cold spots get numbered badges
     // and are listed below the plan (text on a small photo would collide).
-    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="#d85a30" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
+    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="#4f84b3" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
     const warm = fp.rooms.find((r) => r.name === fp.warm_room) || (fp.cold_route.length ? { ...fp.cold_route[0], name: fp.warm_room } : null);
-    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="#e38a2a" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
-    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="#b4321e" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
+    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="#e07a2e" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
+    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="#4f84b3" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
     return `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>
       <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
       ${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
@@ -298,7 +300,7 @@
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
-    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`;
+    return `<div class="frame">${A.house({ mode: "result", marks })}</div><div class="caption"><span class="lbl">SECTION</span><span class="lbl">番号は下の原因の順位</span></div>`;
   }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
