@@ -62,10 +62,12 @@ window.NUKUMORI_RULES = (() => {
   };
   const PROPOSALS = {
     inner_window: { name: "今の窓の内側にもう1枚窓をつける（内窓）", work_size: "small", subsidy: "possible" },
-    window_replace: { name: "窓の交換", work_size: "medium", subsidy: "possible" },
+    // Work sizes checked with a builder (survey, 2026-11-05): window replacement by the cover method is
+    // done in a day; a unit bath takes a few days. Ceiling only (from the attic) would be a few days too.
+    window_replace: { name: "窓の交換", work_size: "small", subsidy: "possible" },
     floor_insulation: { name: "床の断熱", work_size: "medium", subsidy: "check" },
     bath_heater: { name: "脱衣所・浴室の暖房", work_size: "small", subsidy: "check" },
-    bathroom_renovation: { name: "浴室の断熱改修（ユニットバス化か窓の対策）", work_size: "large", subsidy: "check" },
+    bathroom_renovation: { name: "浴室の断熱改修（ユニットバス化か窓の対策）", work_size: "medium", subsidy: "check" },
     wall_ceiling_insulation: { name: "壁・天井の断熱", work_size: "large", subsidy: "check" },
     aircon_heating: { name: "エアコン暖房の活用", work_size: "small", subsidy: "none" },
     ventilation: { name: "換気の見直し", work_size: "small", subsidy: "none" },
