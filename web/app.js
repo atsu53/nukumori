@@ -114,7 +114,7 @@
   }
   // The copy of the floor plan sent to Claude carries a 0-1000 ruler; the family only sees the clean photo.
   // Without it Claude estimates positions by eye and the rooms land in the wrong place (2026-11-05: rooms were
-  // off by a whole room or more; with the ruler they came back within about 30 of 1000).
+  // off by a whole room or more; with the ruler they came back within about 60 of 1000, most within 30).
   function drawRuler(g, w, h) {
     const size = Math.max(12, Math.round(Math.max(w, h) / 80));
     g.font = `bold ${size}px sans-serif`;
