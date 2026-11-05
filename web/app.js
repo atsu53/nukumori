@@ -2,7 +2,9 @@
 (() => {
   const R = window.NUKUMORI_RULES;
   const CFG = window.NUKUMORI_CONFIG;
+  const A = window.NUKUMORI_ART; // drawings (art.js)
   const $screen = document.getElementById("screen");
+  const $bar = document.getElementById("bar");
   const $back = document.getElementById("back");
   const $progress = document.getElementById("progress");
   const $foot = document.getElementById("foot");
@@ -22,13 +24,15 @@
 
   // ---------- helpers ----------
   const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-  function render(html, { back = null, progress = "", foot = false } = {}) {
+  function render(html, { back = null, progress = "", foot = false, bar = null } = {}) {
     $screen.innerHTML = html;
     backTarget = back;
     $back.hidden = !back;
     $progress.textContent = progress;
     $progress.hidden = !progress;
     $foot.hidden = !foot;
+    if ($bar) { $bar.hidden = bar === null; $bar.firstElementChild.style.width = `${Math.round((bar || 0) * 100)}%`; }
+    $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter"); // replay the slide-in
     window.scrollTo(0, 0);
   }
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
@@ -51,9 +55,10 @@
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
     render(`
-      <h1>その一言から、家の寒さを建築士の目で診る</h1>
+      <div class="hero">${A.house({ mode: "cover" })}</div>
+      <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
       <p class="lead">家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。</p>
-      <div class="steps"><div><b>1</b>写真を撮る</div><div><b>2</b>一言と質問</div><div><b>3</b>原因と改修案</div></div>
+      <div class="steps"><div>${A.step("photo")}<span class="n">1</span>写真を撮る</div><div>${A.step("words")}<span class="n">2</span>一言と質問</div><div>${A.step("result")}<span class="n">3</span>原因と改修案</div></div>
       <p class="small muted">一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
       <p class="small muted">目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
       <p class="small muted">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
@@ -108,7 +113,7 @@
         ${list.map((s) => {
           const p = state.photos[s.key];
           return `<div class="slot" data-k="${s.key}">
-            ${p ? `<img src="${p.preview}" alt="">` : `<div class="empty">${s.key}</div>`}
+            ${p ? `<img src="${p.preview}" alt="">` : `<div class="empty">${A.slot(s.key)}</div>`}
             <div><b>${esc(s.label)}</b><div class="small muted">${esc(s.hint)}</div>${p ? `<button class="link small" data-del="${s.key}">外す</button>` : ""}</div>
             <label class="btn secondary">${p ? "撮り直す" : "撮る・選ぶ"}<input type="file" accept="image/*" data-k="${s.key}"></label>
           </div>`;
@@ -142,11 +147,20 @@
     const q = R.QUESTIONS[qid];
     const picked = state.ask && state.qIndex >= nFixed ? state.ask.questions[state.qIndex - nFixed] : null;
     const progress = state.qIndex < nFixed ? `はじめの質問 ${state.qIndex + 1} / ${nFixed}` : `${state.ask ? "写真を見ての質問" : "質問"} ${state.qIndex - nFixed + 1} / ${list.length - nFixed}`;
+    const bar = state.qIndex < nFixed ? (state.qIndex + 1) / nFixed : (state.qIndex - nFixed + 1) / Math.max(1, list.length - nFixed);
+    // Answers with a picture are tiles (or a strip beside the words); "分からない" stays a plain wide button.
+    const lay = A.layout(qid);
+    const choice = (o) => {
+      const pic = lay === "list" ? "" : A.pic(qid, o);
+      const kind = lay === "tiles" ? (pic ? "tile" : "tile wide") : lay === "rows" ? "row" : "";
+      const lead = lay === "rows" ? pic || `<span class="sp"></span>` : pic;
+      return `<button class="choice ${kind} ${state.answers[qid] === o ? "on" : ""}" data-o="${esc(o)}">${lead}<span>${esc(o)}</span></button>`;
+    };
     render(`
       <h1>${esc(q.text)}</h1>
       ${picked ? `<p class="small"><span class="tag">建築士が聞く理由</span>${esc(picked.why)}</p>` : q.note ? `<p class="small muted">${esc(q.note)}</p>` : ""}
-      ${q.options.map((o) => `<button class="choice ${state.answers[qid] === o ? "on" : ""}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}
-    `, { back: () => { if (state.qIndex === 0) S1(); else if (state.ask && state.qIndex === nFixed) SLook(); else { state.qIndex--; S3(); } }, progress });
+      <div class="choices ${lay}">${q.options.map(choice).join("")}</div>
+    `, { back: () => { if (state.qIndex === 0) S1(); else if (state.ask && state.qIndex === nFixed) SLook(); else { state.qIndex--; S3(); } }, progress, bar });
     on(".choice", "click", (e) => { state.answers[qid] = e.currentTarget.dataset.o; state.qIndex++; S3(); });
   }
 
@@ -166,9 +180,10 @@
     state.ask = null; state.inferred = {};
     render(`
       <h1>建築士が、写真と間取り図を見ています</h1>
-      <div class="spinner"></div>
+      ${A.scan(previews(), "ask")}
       <p class="muted">見てから、あと2〜3問だけ聞きます。20秒ほどかかります。</p>
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
+    A.startScan($screen);
     try {
       const res = await fetch(CFG.apiBase + "/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(baseBody()) });
       const json = await res.json().catch(() => ({ ok: false, error: "bad_json" }));
@@ -244,9 +259,10 @@
     screen = "S4";
     render(`
       <h1>${state.previous ? "確かめてきたことで、見立てを更新しています" : "建築士の目で見ています"}</h1>
-      <div class="spinner"></div>
-      <p class="muted" id="msg">写真と答えを読んでいます。30秒ほどかかります。</p>
+      ${A.scan(previews(), "diagnose")}
+      <p class="muted">写真と答えを読んでいます。30秒ほどかかります。</p>
     `, { back: () => { state.qIndex = qList().length - 1; S3(); } });
+    A.startScan($screen);
     const asked = qList();
     const answers = Object.fromEntries(asked.filter((q) => state.answers[q]).map((q) => [q, state.answers[q]]));
     const inferredIds = Object.keys(state.inferred).filter((q) => !answers[q]);
@@ -254,17 +270,14 @@
     state.ruleResult = R.run(answers, state.placeId, inferredIds);
     const body = { ...baseBody(), answers, inferred_from_photos: inferredIds, ask: state.ask, rule_result: state.ruleResult };
     if (state.previous && state.confirmed) { body.previous = state.previous; body.confirmed = state.confirmed; }
-    const t = setInterval(() => { const m = $screen.querySelector("#msg"); if (m) m.textContent = ["写真と答えを読んでいます…", "原因を絞っています…", "暮らしの言葉に直しています…"][Math.floor(Date.now() / 8000) % 3]; }, 2000);
     try {
       const res = await fetch(CFG.apiBase + "/diagnose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const json = await res.json().catch(() => ({ ok: false, error: "bad_json" }));
-      clearInterval(t);
       if (!res.ok || !json.ok) throw new Error(json.error || res.status);
       state.result = json.result; state.model = json.model; state.error = null;
       save();
       S5();
     } catch (e) {
-      clearInterval(t);
       state.error = String(e.message || e);
       render(`
         <h1>うまくいきませんでした</h1>
@@ -281,6 +294,12 @@
   const r = () => state.result;
   function photoThumb(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? `<img class="thumb" src="${p.preview}" alt="写真${n}">` : ""; }
   function photoLabel(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
+  const previews = () => Object.keys(state.photos).sort().map((k) => state.photos[k].preview);
+  // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
+  function causeHouse(x) {
+    const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
+    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`;
+  }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
   // after, worker/prompt.js). Changed points come first with 前回/今回; unchanged ones say 変わらず.
@@ -298,6 +317,7 @@
     render(`
       ${x.changes && x.changes.length ? `${changesHtml(x.changes)}
       <h2>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h2>` : `<h1>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h1>`}
+      ${causeHouse(x)}
       ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span><p>${esc(c.reason)}</p></div>`).join("")}
       ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml()}` : ""}
       ${x.photo_findings.length ? `<h2>写真で見つけたこと</h2>${x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p>${esc(f.note)}</p></div>`).join("")}` : ""}
@@ -332,10 +352,10 @@
       <h1>まず相談するなら、これ</h1>
       ${x.today_actions && x.today_actions.length ? `<h3>今日からできること（工事なし）</h3>${x.today_actions.map((a) => `<div class="card"><b>${esc(a.name)}</b><p>${esc(a.description)}</p></div>`).join("")}` : ""}
       <h3>工務店に相談する改修案（優先順）</h3>
-      ${x.proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}"><span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談するならこれ</span>` : ""}
+      ${x.proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談するならこれ</span>` : ""}
         <p>${esc(p.description)}</p>
         <p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>
-        <p class="small"><span class="tag">工事の大きさ：${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>
+        <p class="small"><span class="tag">${A.size(p.work_size)}工事の大きさ：${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>
         <p class="small muted">なぜこの順位か：${esc(p.why_this_rank)}</p></div>`).join("")}
       ${bathStages ? `<h3>お風呂の寒さ対策は、この順で進みます</h3>
       ${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
