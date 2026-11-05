@@ -2,12 +2,7 @@
 (() => {
   const R = window.NUKUMORI_RULES;
   const CFG = window.NUKUMORI_CONFIG;
-  // Two looks while the final one is chosen (2026-11-05): A (art.js, style.css) drawn like an architect's
-  // sheet, B (art-b.js, style-b.css) soft. The switch at the bottom right changes it; ?look=a|b and
-  // localStorage keep it. Questions, logic and words are shared; only the drawings and the styles differ.
-  const LOOKS = { a: window.NUKUMORI_ART, b: window.NUKUMORI_ART_B };
-  let look = "a";
-  let A = LOOKS.a; // the drawings of the current look
+  const A = window.NUKUMORI_ART; // the drawings (art.js)
   const $screen = document.getElementById("screen");
   const $bar = document.getElementById("bar");
   const $back = document.getElementById("back");
@@ -37,26 +32,11 @@
     $progress.hidden = !progress;
     $foot.hidden = !foot;
     if ($bar) { $bar.hidden = bar === null; $bar.firstElementChild.style.width = `${Math.round((bar || 0) * 100)}%`; }
-    $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter"); // B slides screens in; A has no rule for it
+    $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter");
     window.scrollTo(0, 0);
   }
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
   $back.addEventListener("click", () => backTarget && backTarget());
-
-  function setLook(k, redraw) {
-    look = LOOKS[k] ? k : "a";
-    A = LOOKS[look];
-    document.getElementById("css-a").disabled = look !== "a";
-    document.getElementById("css-b").disabled = look !== "b";
-    const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.content = look === "b" ? "#f6efe6" : "#f7f6f2";
-    try { localStorage.setItem("nukumori:look", look); } catch {}
-    document.querySelectorAll("#look button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
-    // Redraw the screen in the new look, except while waiting for Claude or while typing what was checked.
-    const again = { S0, S1, S2, S3, SLook, S5, S6, S7, S8 }[screen];
-    if (redraw && again) again();
-  }
-  document.querySelectorAll("#look button").forEach((b) => b.addEventListener("click", () => setLook(b.dataset.look, true)));
 
   // Photos come first (2026-11-04), before the resident's words, so the slots do not depend on the place.
   function slots() {
@@ -83,21 +63,13 @@
     ];
     const buttons = `<button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}`;
-    render(look === "b" ? `
+    render(`
       <div class="hero">${A.house({ mode: "cover" })}</div>
       <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
       <p class="lead">${lead}</p>
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       ${notes.map((n) => `<p class="small muted">${n}</p>`).join("")}
       ${buttons}
-    ` : `
-      <h1 class="title">その一言から、<br>家の寒さを<br>建築士の目で診る</h1>
-      <div class="frame">${A.house({ mode: "cover" })}</div>
-      <div class="caption"><span class="lbl">SECTION</span><span class="lbl">断面図・模式</span></div>
-      <p class="lead">${lead}</p>
-      <div class="steps">${steps.map(([s], i) => `<div><span class="num">0${i + 1}</span><span class="s">${s}</span></div>`).join("")}</div>
-      ${buttons}
-      <div class="notes">${notes.map((n) => `<p>${n}</p>`).join("")}</div>
     `);
     on("#start", "click", () => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {} }); S2(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
@@ -332,9 +304,7 @@
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
-    return look === "b"
-      ? `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`
-      : `<div class="frame">${A.house({ mode: "result", marks })}</div><div class="caption"><span class="lbl">SECTION</span><span class="lbl">番号は下の原因の順位</span></div>`;
+    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`;
   }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
@@ -525,8 +495,5 @@
   }
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
-  let firstLook = new URLSearchParams(location.search).get("look");
-  try { firstLook = firstLook || localStorage.getItem("nukumori:look"); } catch {}
-  setLook(firstLook || "a", false);
   S0();
 })();

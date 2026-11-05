@@ -1,7 +1,7 @@
 // Minimal service worker: caches the app shell so the pages open offline.
 // Diagnosis requests always go to the network.
-const CACHE = "nukumori-v1";
-const SHELL = ["./", "./index.html", "./style.css", "./config.js", "./rules.js", "./art.js", "./art-b.js", "./style-b.css", "./app.js", "./manifest.webmanifest", "./icon.svg"];
+const CACHE = "nukumori-v2";
+const SHELL = ["./", "./index.html", "./style.css", "./config.js", "./rules.js", "./art.js", "./app.js", "./manifest.webmanifest", "./icon.svg"];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting()));

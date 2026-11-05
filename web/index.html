@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f7f6f2">
+  <meta name="theme-color" content="#f6efe6">
   <title>nukumori｜家の寒さを、建築士の目で診る</title>
   <meta name="description" content="住む人の一言から、家の寒さを建築士の目で診るアプリ">
   <link rel="manifest" href="manifest.webmanifest">
@@ -12,24 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+JP:wght@400;500;700;800;900&display=swap">
-  <!-- Two looks while the final one is chosen (2026-11-05): A drawn like an architect's sheet, B soft. -->
-  <link id="css-a" rel="stylesheet" href="style.css">
-  <link id="css-b" rel="stylesheet" href="style-b.css" disabled>
-  <script>
-    // Apply the saved look before the page paints (?look=a|b overrides it).
-    (function () {
-      var k = new URLSearchParams(location.search).get("look");
-      try { k = k || localStorage.getItem("nukumori:look"); } catch (e) {}
-      if (k === "b") { document.getElementById("css-a").disabled = true; document.getElementById("css-b").disabled = false; }
-    })();
-  </script>
-  <style>
-    /* the look switch (development only; shared by both looks) */
-    .look { position: fixed; right: 10px; bottom: 10px; z-index: 20; display: flex; align-items: center; gap: 2px; padding: 3px; border-radius: 999px; background: rgba(28,26,24,.86); color: #fff; font: 600 11px/1 system-ui, sans-serif; }
-    .look span { padding: 0 6px 0 8px; opacity: .8; }
-    .look button { width: 30px; height: 26px; border: 0; border-radius: 999px; background: transparent; color: #fff; font: inherit; cursor: pointer; }
-    .look button[aria-pressed="true"] { background: #fff; color: #1c1a18; }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <header class="top">
@@ -42,11 +25,9 @@
   <footer id="foot" class="foot" hidden>
     このアプリは建築士の知識にもとづく目安を示すもので、現地調査や設計・工事の判断に代わるものではありません。写真と回答は保存しません。
   </footer>
-  <div id="look" class="look" role="group" aria-label="見た目の切り替え（開発中）"><span>見た目</span><button data-look="a" aria-pressed="false">A</button><button data-look="b" aria-pressed="false">B</button></div>
   <script src="config.js"></script>
   <script src="rules.js"></script>
   <script src="art.js"></script>
-  <script src="art-b.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
