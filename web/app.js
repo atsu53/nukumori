@@ -76,7 +76,6 @@
       <p class="lead">${lead}</p>
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       ${buttons}
-      <p class="small muted center">10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
     `);
     on("#start", "click", SWho);
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
