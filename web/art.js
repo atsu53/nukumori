@@ -93,11 +93,17 @@
   const check = (x = 46, y = 46) => `<circle cx="${x}" cy="${y}" r="10" fill="${OK}" stroke="#fff" stroke-width="2"/><path d="M${x - 5} ${y} l3.5 3.5 l6 -7" stroke="#fff" stroke-width="2.5"/>`;
   const waves = (xs, y, color = WARM) => `<path d="${xs.map((x) => `M${x} ${y} q3 -4 0 -8 q-3 -4 0 -8`).join(" ")}" stroke="${color}" stroke-width="2.2"/>`;
 
+  // Solid pictures (direction B, chosen 2026-11-05): read from a distance, for people who find the small words hard.
+  const flame = (x, y, s = 1) => `<path d="M${x} ${y} c${-6 * s} ${-3 * s} ${-6 * s} ${-10 * s} 0 ${-16 * s} c${6 * s} ${6 * s} ${6 * s} ${13 * s} 0 ${16 * s} Z" fill="${WARM}" stroke="none"/>`;
+  const solidSock = `<path d="M20 8 H36 V32 L50 39 a7 7 0 0 1 -3 13 H28 a8 8 0 0 1 -8 -8 Z" fill="${INK}" stroke="none"/>`;
+  const slipper = (x) => `<path d="M${x} 52 c-8 0 -10 -7 -10 -16 c0 -14 3 -24 10 -24 s10 10 10 24 c0 9 -2 16 -10 16 Z" fill="${WARM}" stroke="none"/><path d="M${x - 10.5} 24 q10.5 -9 21 0 l-1 11 q-9.5 -6 -19 0 Z" fill="${INK}" stroke="none"/>`;
+  const solidHouse = (extra = "") => svg(`<path d="M32 8 L58 30 H52 V56 H12 V30 H6 Z" fill="${INK}" stroke="${INK}"/><rect x="27" y="38" width="10" height="18" fill="${PAPER}" stroke="none"/>${extra}`);
+
   const PIC = {
     q0: {
-      "一戸建て（持ち家）": () => house0(),
-      "マンション・アパート（分譲）": () => svg(`<rect x="16" y="6" width="32" height="52" fill="${PAPER}"/>${[12, 22, 32, 42].map((y) => [21, 29, 37].map((x) => `<rect x="${x}" y="${y}" width="5" height="6" stroke-width="1.6" fill="${GLASS}"/>`).join("")).join("")}<path d="M28 58 V50 H36 V58"/>`),
-      "借りている家": () => house0(`<circle cx="47" cy="47" r="5" fill="${PAPER}" stroke="${WARM}"/><path d="M52 47 H60 M57 47 V51" stroke="${WARM}"/>`),
+      "一戸建て（持ち家）": () => solidHouse(),
+      "マンション・アパート（分譲）": () => svg(`<rect x="14" y="5" width="36" height="54" rx="2" fill="${INK}" stroke="none"/>${[11, 21, 31, 41].map((y) => [20, 29, 38].map((x) => `<rect x="${x}" y="${y}" width="6" height="6" fill="${PAPER}" stroke="none"/>`).join("")).join("")}<rect x="28" y="50" width="8" height="9" fill="${PAPER}" stroke="none"/>`),
+      "借りている家": () => solidHouse(`<circle cx="48" cy="49" r="6" fill="${PAPER}" stroke="${WARM}" stroke-width="3.5"/><path d="M54 49 H62 M59 49 V54" stroke="${WARM}" stroke-width="3.5"/>`),
     },
     q8: {
       "窓を交換した・内窓をつけた": () => win({ frame: WOOD, double: true, drops: check() }),
@@ -116,14 +122,14 @@
       "ユニットバス（比較的新しい）": () => unitBath(`<path d="M52 4 V14 M47 9 H57" stroke="${WARM}" stroke-width="2.5"/>`),
     },
     q4: {
-      "ない": () => svg(`<path d="M10 54 H54 M10 54 V12" stroke="${MUTED}"/><g stroke="${COLD}" stroke-width="3">${flake(34, 32, 13)}</g>`),
-      "持ち運びのヒーターを使う": () => svg(`<rect x="18" y="26" width="28" height="26" rx="4" fill="${PAPER}"/><path d="M24 34 H40 M24 40 H40 M24 46 H40" stroke-width="2"/><path d="M21 52 V57 M43 52 V57"/>${waves([24, 32, 40], 22)}`),
-      "浴室暖房乾燥機がある": () => svg(`<path d="M4 10 H60" stroke="${MUTED}"/><rect x="14" y="10" width="36" height="12" rx="2" fill="${PAPER}"/><path d="M19 16 H45" stroke-width="2"/><path d="M22 30 q-3 4 0 8 q3 4 0 8 M32 30 q-3 4 0 8 q3 4 0 8 M42 30 q-3 4 0 8 q3 4 0 8" stroke="${WARM}" stroke-width="2.2"/>`),
+      "ない": () => svg(`<path d="M6 57 H58" stroke="${INK}" stroke-width="5"/><g stroke="${COLD}" stroke-width="5">${flake(32, 28, 19)}</g>`),
+      "持ち運びのヒーターを使う": () => svg(`<rect x="14" y="26" width="36" height="28" rx="4" fill="${INK}" stroke="none"/><path d="M21 35 H43 M21 41 H43 M21 47 H43" stroke="${PAPER}" stroke-width="3"/><path d="M20 54 V60 M44 54 V60" stroke="${INK}" stroke-width="5"/><path d="M22 20 q3 -4 0 -8 q-3 -4 0 -8 M32 20 q3 -4 0 -8 q-3 -4 0 -8 M42 20 q3 -4 0 -8 q-3 -4 0 -8" stroke="${WARM}" stroke-width="4"/>`),
+      "浴室暖房乾燥機がある": () => svg(`<rect x="4" y="5" width="56" height="6" fill="${INK}" stroke="none"/><rect x="12" y="11" width="40" height="15" rx="3" fill="${INK}" stroke="none"/><rect x="18" y="16" width="28" height="4" fill="${PAPER}" stroke="none"/><path d="M20 34 q5 6 0 12 q-5 6 0 12 M32 34 q5 6 0 12 q-5 6 0 12 M44 34 q5 6 0 12 q-5 6 0 12" stroke="${WARM}" stroke-width="4"/>`),
     },
     q5: {
-      "靴下でも足が冷たい": () => svg(`<path d="M18 8 H32 V34 L46 40 a6 6 0 0 1 -2 12 H24 a6 6 0 0 1 -6 -6 Z" fill="${PAPER}"/><path d="M18 14 H32" stroke-width="2"/><g stroke="${COLD}" stroke-width="2.5">${flake(50, 18, 7)}</g><path d="M6 58 H58" stroke="${MUTED}"/>`),
-      "スリッパなら平気": () => svg(`<path d="M8 46 q0 -9 18 -9 h14 q16 0 16 7 q0 6 -12 6 H16 q-8 0 -8 -4 Z" fill="${PAPER}"/><path d="M24 38 q6 -10 18 -6" stroke-width="2.5"/><path d="M6 58 H58" stroke="${MUTED}"/>`),
-      "気にならない": () => svg(`<path d="M18 8 H32 V34 L46 40 a6 6 0 0 1 -2 12 H24 a6 6 0 0 1 -6 -6 Z" fill="${PAPER}"/><path d="M18 14 H32" stroke-width="2"/>${waves([48, 56], 22)}<path d="M6 58 H58" stroke="${MUTED}"/>`),
+      "靴下でも足が冷たい": () => svg(solidSock + `<g stroke="${COLD}" stroke-width="3.5">${flake(53, 17, 8)}</g>`),
+      "スリッパなら平気": () => svg(slipper(21) + slipper(43)),
+      "気にならない": () => svg(solidSock + `<circle cx="50" cy="17" r="10" fill="${OK}" stroke="none"/><path d="M45 17 l3.5 3.5 l6.5 -7" stroke="#fff" stroke-width="2.8"/>`),
     },
     q6: {
       "窓がびっしょり": () => win({ drops: dropsAll }),
@@ -132,11 +138,11 @@
       "ほとんどしない": () => win({ frame: ALU }),
     },
     q7: {
-      "エアコン": () => svg(`<rect x="8" y="12" width="48" height="18" rx="6" fill="${PAPER}"/><path d="M14 24 H50" stroke-width="2"/><path d="M18 36 q4 6 0 12 M32 36 q4 6 0 12 M46 36 q4 6 0 12" stroke="${WARM}" stroke-width="2.2"/>`),
-      "石油ファンヒーターや開放型ストーブ（排気筒なし）": () => svg(`<rect x="14" y="22" width="36" height="32" rx="4" fill="${PAPER}"/><rect x="20" y="34" width="24" height="14" rx="2" fill="#f6dcc4" stroke-width="2"/><path d="M32 46 c-5 -3 -4 -8 0 -11 c4 3 5 8 0 11 Z" fill="${WARM}" stroke="none"/>${waves([24, 40], 18)}`),
-      "FF式・煙突つきのストーブ": () => svg(`<path d="M52 4 V60" stroke="${MUTED}"/><rect x="8" y="28" width="30" height="26" rx="3" fill="${PAPER}"/><rect x="13" y="37" width="20" height="11" rx="2" fill="#f6dcc4" stroke-width="2"/><path d="M23 46 c-4 -2 -3 -6 0 -8 c3 2 4 6 0 8 Z" fill="${WARM}" stroke="none"/><path d="M23 28 V14 H58" stroke-width="4"/>`),
-      "こたつ・電気ストーブ": () => svg(`<rect x="8" y="22" width="48" height="6" rx="2" fill="${WOOD}"/><path d="M11 28 q-3 14 5 24 H48 q8 -10 5 -24" fill="#f6dcc4"/>${waves([24, 40], 18)}`),
-      "床暖房": () => svg(`<path d="M6 34 H58" stroke-width="3"/><path d="M8 44 q5 -5 10 0 t10 0 t10 0 t10 0 t10 0" stroke="${WARM}" stroke-width="2.2"/><path d="M20 28 V16 M32 28 V16 M44 28 V16 M16 20 L20 16 L24 20 M28 20 L32 16 L36 20 M40 20 L44 16 L48 20" stroke="${WARM}" stroke-width="2"/>`),
+      "エアコン": () => svg(`<rect x="6" y="10" width="52" height="20" rx="6" fill="${INK}" stroke="none"/><rect x="12" y="23" width="40" height="3" fill="${PAPER}" stroke="none"/><path d="M16 36 q5 7 0 14 M32 36 q5 7 0 14 M48 36 q5 7 0 14" stroke="${WARM}" stroke-width="4"/>`),
+      "石油ファンヒーターや開放型ストーブ（排気筒なし）": () => svg(`<rect x="10" y="12" width="44" height="44" rx="5" fill="${INK}" stroke="none"/><rect x="16" y="28" width="32" height="22" rx="2" fill="${PAPER}" stroke="none"/>${flame(32, 48)}<circle cx="46" cy="20" r="2.5" fill="${PAPER}" stroke="none"/>`),
+      "FF式・煙突つきのストーブ": () => svg(`<rect x="6" y="28" width="34" height="28" rx="3" fill="${INK}" stroke="none"/><rect x="12" y="36" width="22" height="14" rx="2" fill="${PAPER}" stroke="none"/>${flame(23, 49, 0.7)}<path d="M23 28 V13 H60" stroke="${INK}" stroke-width="7"/>`),
+      "こたつ・電気ストーブ": () => svg(`<rect x="4" y="20" width="56" height="7" rx="2" fill="${INK}" stroke="none"/><path d="M11 27 H53 L59 50 q-27 -6 -54 0 Z" fill="${WARM}" stroke="none"/><path d="M14 56 V49 M50 56 V49" stroke="${INK}" stroke-width="5"/><circle cx="32" cy="12" r="6.5" fill="${WARM}" stroke="none"/>`),
+      "床暖房": () => svg(`<rect x="4" y="18" width="56" height="9" fill="${INK}" stroke="none"/><path d="M8 37 H52 q5 0 5 4.5 t-5 4.5 H12 q-5 0 -5 4.5 t5 4.5 H50" stroke="${WARM}" stroke-width="4.5"/><path d="M18 12 V4 M32 12 V4 M46 12 V4" stroke="${WARM}" stroke-width="3.5"/>`),
     },
   };
   // q1 and q9 read better as a strip beside the answer: a timeline of the building eras, and a size meter.
@@ -164,7 +170,7 @@
   const STEP = {
     photo: () => svg(`<rect x="8" y="18" width="48" height="34" rx="6" fill="${PAPER}"/><circle cx="32" cy="35" r="10" fill="${GLASS}"/><path d="M22 18 l4 -6 h12 l4 6"/>`),
     words: () => svg(`<path d="M10 12 h44 a4 4 0 0 1 4 4 v20 a4 4 0 0 1 -4 4 H28 l-10 9 v-9 h-8 a4 4 0 0 1 -4 -4 V16 a4 4 0 0 1 4 -4 Z" fill="${PAPER}"/><path d="M18 22 h28 M18 30 h18" stroke-width="2"/>`),
-    result: () => house0(`<circle cx="49" cy="17" r="9" fill="${WARM}" stroke="#fff" stroke-width="2"/><text x="49" y="17.5" text-anchor="middle" dominant-baseline="central" font-size="11" font-weight="700" fill="#fff" stroke="none">1</text>`),
+    result: () => svg(`<path d="M6 30 L32 8 L58 30 M12 26 V56 H52 V26"/><path d="M22 50 q4 -5 0 -10 q-4 -5 0 -10 M32 50 q4 -5 0 -10 q-4 -5 0 -10 M42 50 q4 -5 0 -10 q-4 -5 0 -10" stroke="${WARM}" stroke-width="3.5"/>`),
   };
   // The proposals (rules.js PROPOSALS) with the same drawings, and the work size as a small meter.
   const PROP = {
@@ -185,6 +191,8 @@
     self: () => svg(`<path d="M8 30 L32 10 L56 30 V56 H8 Z" fill="${PAPER}"/><circle cx="32" cy="30" r="5.5"/><path d="M22 50 c0 -9 5 -12 10 -12 s10 3 10 12" fill="#f6dcc4"/>`),
     family: () => svg(`<path d="M28 28 L42 16 L56 28 V50 H28 Z" fill="${PAPER}"/><rect x="38" y="38" width="8" height="12"/><circle cx="14" cy="32" r="5"/><path d="M6 54 c0 -9 4 -13 8 -13 s8 4 8 13" fill="#f6dcc4"/><path d="M4 22 q10 -10 20 0" stroke="${WARM}" stroke-dasharray="1 5" stroke-width="2.5"/>`),
   };
+  // Beside the words for the family: the one place the app says a person is thinking of a person.
+  const care = () => svg(`<path d="M32 30 c-3 -5 -12 -8 -15 -2 c-3 7 8 13 15 19 c7 -6 18 -12 15 -19 c-3 -6 -12 -3 -15 2 Z" fill="${WARM}" stroke="none"/><path d="M4 44 c6 10 16 15 28 15 s22 -5 28 -15" stroke="${INK}" stroke-width="5"/><path d="M32 6 V13 M18 10 L21 16 M46 10 L43 16" stroke="${WARM}" stroke-width="3"/>`, "0 0 64 64", "pic care");
   const logo = () => `<svg class="logo" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 18 L18 46 H28 V76 H68 V46 H78 Z" fill="none" stroke="${WARM}" stroke-width="7" stroke-linejoin="round"/><path d="M40 72 C40 60 56 58 56 46 C56 40 52 36 48 34 C50 42 44 46 42 50 C38 56 38 62 40 72 Z" fill="${WARM}"/></svg>`;
 
   // ---------- the scan while Claude reads the photos ----------
@@ -217,5 +225,5 @@
   }
 
   const planColors = { route: "#d85a30", warm: "#e38a2a", cold: "#b4321e" };
-  window.NUKUMORI_ART = { who: (k) => WHO[k](), planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
+  window.NUKUMORI_ART = { care, who: (k) => WHO[k](), planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
 })();

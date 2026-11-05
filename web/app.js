@@ -430,7 +430,7 @@
       <h1>${isSelf() ? "家で確かめてほしいこと" : "次に家を見るとき、確かめてほしいこと"}</h1>
       <ul>${x.checks.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
       ${isSelf() || !x.message_to_parent ? "" : `<h2>家族への一言</h2>
-      <div class="card"><p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
+      <div class="card">${A.care()}<p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
       ${bath ? `<div class="notice"><b>お風呂の寒さは、冬の事故につながります。</b><p class="small">消費者庁の注意喚起：入浴前に脱衣所や浴室を暖める。湯温は41度以下、湯につかるのは10分までを目安に。浴槽から急に立ち上がらない。入浴前に家族に声をかける。<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁のページ</a></p><p class="small muted">気になる症状があれば医師に相談してください。</p></div>` : ""}
       <button class="btn secondary" id="confirm">確かめてきたので、診断し直す</button>
       <button class="btn" id="next">保存・共有</button>
