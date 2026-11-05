@@ -96,7 +96,7 @@
   }
 
   // ---------- S2 ----------
-  async function shrink(file) {
+  async function shrink(file, ruler) {
     const url = URL.createObjectURL(file);
     try {
       const img = await new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ng; i.src = url; });
@@ -104,10 +104,32 @@
       const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
       const w = Math.round(img.naturalWidth * scale), h = Math.round(img.naturalHeight * scale);
       const c = document.createElement("canvas"); c.width = w; c.height = h;
-      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      const g = c.getContext("2d");
+      g.drawImage(img, 0, 0, w, h);
       const dataUrl = c.toDataURL("image/jpeg", CFG.photoQuality); // re-encoded: no EXIF, no location
-      return { media_type: "image/jpeg", data: dataUrl.split(",")[1], preview: dataUrl, w, h };
+      if (ruler) drawRuler(g, w, h);
+      const sent = ruler ? c.toDataURL("image/jpeg", CFG.photoQuality) : dataUrl;
+      return { media_type: "image/jpeg", data: sent.split(",")[1], preview: dataUrl, w, h };
     } finally { URL.revokeObjectURL(url); }
+  }
+  // The copy of the floor plan sent to Claude carries a 0-1000 ruler; the family only sees the clean photo.
+  // Without it Claude estimates positions by eye and the rooms land in the wrong place (2026-11-05: rooms were
+  // off by a whole room or more; with the ruler they came back within about 30 of 1000).
+  function drawRuler(g, w, h) {
+    const size = Math.max(12, Math.round(Math.max(w, h) / 80));
+    g.font = `bold ${size}px sans-serif`;
+    g.textBaseline = "top";
+    g.lineWidth = 1;
+    for (let v = 0; v <= 1000; v += 100) {
+      const x = v / 1000 * w, y = v / 1000 * h;
+      g.strokeStyle = "rgba(0,90,230,.45)";
+      g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
+      const t = String(v), tw = g.measureText(t).width;
+      [[Math.min(x + 2, w - tw - 2), 1], [1, Math.min(y + 1, h - size - 2)]].forEach(([tx, ty]) => {
+        g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(tx - 1, ty, tw + 2, size + 1);
+        g.fillStyle = "#003cc8"; g.fillText(t, tx, ty);
+      });
+    }
   }
   function S2() {
     screen = "S2";
@@ -132,7 +154,7 @@
       const f = e.target.files[0]; if (!f) return;
       const k = e.target.dataset.k;
       const label = list.find((s) => String(s.key) === k).label;
-      try { state.photos[k] = { label, ...(await shrink(f)) }; } catch { alert("この写真は読み込めませんでした。別の写真を選んでください。"); }
+      try { state.photos[k] = { label, ...(await shrink(f, k === "5")) }; } catch { alert("この写真は読み込めませんでした。別の写真を選んでください。"); }
       S2();
     });
     on("[data-del]", "click", (e) => { delete state.photos[e.currentTarget.dataset.del]; S2(); });
@@ -213,7 +235,7 @@
   // Keep only points that sit on the floor-plan photo (0-1000 on both axes).
   function cleanPlan(fp, nPhotos) {
     if (!fp || !(fp.photo >= 1 && fp.photo <= nPhotos)) return null;
-    const ok = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1000 && p.y >= 0 && p.y <= 1000;
+    const ok = (p) => p && Number.isFinite(p.x) && Number.isFinite(p.y) && p.x >= 0 && p.x <= 1000 && p.y >= 0 && p.y <= 1000 && (p.x > 0 || p.y > 0); // (0,0) means "not filled in"
     const rooms = (fp.rooms || []).filter(ok).slice(0, 8);
     const cold_route = (fp.cold_route || []).filter(ok).slice(0, 6);
     const cold_points = (fp.cold_points || []).filter(ok).slice(0, 3);

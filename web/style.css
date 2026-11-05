@@ -32,6 +32,7 @@ body { background: transparent; }
 .progress { margin-left: auto; color: var(--muted); font-size: 14px; }
 .screen { max-width: 640px; margin: 0 auto; padding: 8px 16px 120px; }
 .foot { max-width: 640px; margin: 0 auto; padding: 12px 16px 28px; color: var(--muted); font-size: 12px; }
+h1, h2, h3 { word-break: auto-phrase; }
 h1 { font-size: 24px; line-height: 1.4; margin: 12px 0 8px; }
 h2 { font-size: 20px; line-height: 1.4; margin: 24px 0 8px; }
 h3 { font-size: 17px; margin: 18px 0 6px; }

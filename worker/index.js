@@ -86,6 +86,13 @@ function buildContent(input, step) {
   return content;
 }
 
+function askLooksUnfinished(r) {
+  if (!r.questions?.length) return true;
+  const fp = r.floor_plan;
+  if (!fp || !(fp.photo >= 1)) return false; // no floor plan was sent
+  return !fp.cold_points?.length || fp.cold_points.some((p) => !p.x && !p.y) || (fp.note || "").trim().length < 2;
+}
+
 async function callClaude(input, step, env) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   return client.beta.messages.create({
@@ -176,6 +183,15 @@ export default {
       result = JSON.parse(textBlock?.text ?? "");
     } catch {
       return fail("bad_output", 502, origin, true);
+    }
+    // /ask sometimes comes back half filled in: nothing to ask, or one cold point at (0,0) with an empty plan
+    // note (3 of about 20 runs, 2026-11-05). Try once more and keep the first answer if that is no better.
+    if (step === "ask" && askLooksUnfinished(result)) {
+      try {
+        const again = await callClaude(input, step, env);
+        const parsed = JSON.parse(again.content.find((b) => b.type === "text")?.text ?? "");
+        if (!askLooksUnfinished(parsed)) result = parsed;
+      } catch { /* keep the first answer */ }
     }
     return json({ ok: true, model: response.model, result }, 200, origin);
   },
