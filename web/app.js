@@ -282,12 +282,21 @@
   function photoThumb(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? `<img class="thumb" src="${p.preview}" alt="写真${n}">` : ""; }
   function photoLabel(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
 
+  // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
+  // after, worker/prompt.js). Changed points come first with 前回/今回; unchanged ones say 変わらず.
+  const sameText = (a, b) => String(a || "").replace(/\s|。$/g, "") === String(b || "").replace(/\s|。$/g, "");
+  function changesHtml(list) {
+    const moved = list.filter((c) => !sameText(c.before, c.after)), kept = list.filter((c) => sameText(c.before, c.after));
+    return `<h1>${moved.length ? "確かめてきたことで、ここが変わりました" : "確かめてきましたが、見立ては変わりませんでした"}</h1>
+      ${moved.map((c) => `<div class="card first"><b>${esc(c.what)}</b><p class="small"><span class="tag">前回</span>${esc(c.before)}</p><p class="small"><span class="tag strong">今回</span>${esc(c.after)}</p><p class="small muted">${esc(c.why)}</p></div>`).join("")}
+      ${kept.map((c) => `<div class="card"><b>${esc(c.what)}</b><p class="small"><span class="tag">変わらず</span>${esc(c.after)}</p><p class="small muted">${esc(c.why)}</p></div>`).join("")}`;
+  }
+
   function S5() {
     screen = "S5";
     const x = r();
     render(`
-      ${x.changes && x.changes.length ? `<h1>確かめてきたことで、ここが変わりました</h1>
-      ${x.changes.map((c) => `<div class="card first"><b>${esc(c.what)}</b><p class="small"><span class="tag">前回</span>${esc(c.before)}</p><p class="small"><span class="tag strong">今回</span>${esc(c.after)}</p><p class="small muted">${esc(c.why)}</p></div>`).join("")}
+      ${x.changes && x.changes.length ? `${changesHtml(x.changes)}
       <h2>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h2>` : `<h1>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h1>`}
       ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span><p>${esc(c.reason)}</p></div>`).join("")}
       ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml()}` : ""}
