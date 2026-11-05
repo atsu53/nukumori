@@ -232,9 +232,9 @@
     if (state.ask && state.askKey === key) return SLook();
     state.ask = null; state.inferred = {};
     render(`
-      <h1>建築士が、写真と間取り図を見ています</h1>
+      <h1>写真を見て、聞くことを選んでいます</h1>
       ${A.scan(previews(), "ask")}
-      <p class="muted">見てから、あと2〜3問だけ聞きます。20秒ほどかかります。</p>
+      <p class="muted">このあと2〜3問だけ聞きます。20秒ほどかかります。</p>
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
     A.startScan($screen);
     try {
@@ -313,9 +313,9 @@
   async function S4() {
     screen = "S4";
     render(`
-      <h1>${state.previous ? "確かめてきたことで、見立てを更新しています" : "建築士の目で見ています"}</h1>
-      ${A.scan(previews(), "diagnose")}
-      <p class="muted">写真と答えを読んでいます。30秒ほどかかります。</p>
+      <h1>${state.previous ? "確かめてきたことで、見立てを更新しています" : "答えと写真を合わせて、原因をまとめています"}</h1>
+      ${A.gather(Object.keys(state.photos).length > 0)}
+      <p class="muted">もうすぐ結果が出ます。30秒ほどかかります。</p>
     `, { back: () => { state.qIndex = qList().length - 1; S3(); } });
     A.startScan($screen);
     const asked = qList();
@@ -472,12 +472,29 @@
     });
   }
 
+  // What the family will actually ask the builder: the top proposals as questions, decided on the device from
+  // the proposal ids, so the person handing the sheet over can read it at a glance. No cost, no promise.
+  const ASK_BUILDER = {
+    bath_heater: "脱衣所と浴室に、暖房をつけられますか",
+    inner_window: "今の窓の内側に、もう1枚窓をつけられますか",
+    window_replace: "窓を、断熱のよいものに交換できますか",
+    floor_insulation: "床下から、断熱材を入れられますか",
+    bathroom_renovation: "浴室を断熱するとしたら、どんな工事になりますか",
+    wall_ceiling_insulation: "壁や天井に、断熱材を足せますか",
+    aircon_heating: "エアコンの暖房を足すとしたら、どこにつけられますか",
+    ventilation: "断熱とあわせて、換気はどう見直せばよいですか",
+  };
+  function builderQuestions() {
+    return r().proposals.filter((p) => ASK_BUILDER[p.id]).sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => ASK_BUILDER[p.id]);
+  }
+
   function sheetText() {
     const x = r();
     const a = state.answers;
     const lines = [];
     const fam = isSelf() ? "住んでいる本人" : "家族";
     lines.push("工務店に見せる相談シート（nukumori で作成）", `${fam}が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。`, "");
+    lines.push("■ 工務店に聞きたいこと", ...builderQuestions().map((q, i) => `${i + 1}. ${q}`), "");
     lines.push("■ 困っていること", `住む人の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
     lines.push(`■ ${fam}が優先したいこと`, `・工事の大きさ：${a.q9 || "未回答"}`);
     if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
@@ -513,10 +530,12 @@
     screen = "S8";
     render(`
       <h1>手元に残す・伝える</h1>
-      <div class="card"><b>この端末に保存しました</b><p class="small muted">最初の画面の「前回の結果を見る」から戻れます。写真は保存しません。</p></div>
-      <div class="card"><b>工務店に見せる相談シート</b><p class="small muted">確かめたことと、AI の推測を分けた文面です。コピーして LINE やメールに貼れます。</p>
-        <button class="btn secondary" id="copySheet">相談シートをコピー</button>
-        <details class="small"><summary class="muted">文面を見る</summary><div class="sheet">${esc(sheetText())}</div></details></div>
+      <div class="card first"><b>工務店に聞くこと</b>
+        <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol>
+        <p class="small muted">これに、工務店向けの詳しい内容をつけて渡します。</p>
+        <button class="btn" id="copySheet">相談シートをコピー</button>
+        ${more(`<div class="sheet">${esc(sheetText())}</div>`, "工務店向けの全文を見る")}</div>
+      <p class="small muted">この端末に保存しました。最初の画面の「前回の結果を見る」から戻れます。写真は保存しません。</p>
       <button class="btn secondary" id="copyAll">結果の要約をコピー</button>
       <button class="btn" id="again">もう一度診る</button>
     `, { back: S7, foot: true });

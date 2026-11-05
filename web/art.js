@@ -208,6 +208,13 @@
     return `<div class="scan" data-kind="${kind}"><div class="scan-frame ${previews.length ? "photo" : "paper"}">${inner}<div class="scan-grid"></div><div class="scan-line"></div><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i></div>
       <p class="scan-cap"><span class="tag">${kind === "ask" ? "見ているところ" : "いまの作業"}</span><b>${caps[0]}</b></p></div>`;
   }
+  // The second wait: no more looking at photos, so no scan line. The house is drawn, with what is already done.
+  function gather(hasPhotos) {
+    const row = (done, text) => `<li class="${done ? "done" : "now"}"><span class="mk"></span>${done ? text : `<b>${text}</b>`}</li>`;
+    return `<div class="scan gather" data-kind="diagnose"><div class="house-wrap">${house({ mode: "cover" })}</div>
+      <ul class="stages">${hasPhotos ? row(true, "写真を見ました") : ""}${row(true, "答えを聞きました")}${row(false, "原因と直し方をまとめています")}</ul>
+      <p class="scan-cap"><span class="tag">いまの作業</span><b>${CAPTIONS.diagnose[0]}</b></p></div>`;
+  }
   // Rotates the photos and the caption; stops by itself once the screen is replaced.
   function startScan(root) {
     const el = root.querySelector(".scan");
@@ -225,5 +232,5 @@
   }
 
   const planColors = { route: "#d85a30", warm: "#e38a2a", cold: "#b4321e" };
-  window.NUKUMORI_ART = { care, who: (k) => WHO[k](), planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
+  window.NUKUMORI_ART = { gather, care, who: (k) => WHO[k](), planColors, house, pic, layout, slot: (k) => (SLOT[k] ? SLOT[k]() : ""), step: (k) => STEP[k](), proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""), size, logo, scan, startScan };
 })();

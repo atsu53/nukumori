@@ -147,6 +147,16 @@ li { margin: 6px 0; }
 .scan .br { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
 .scan-frame.paper .c { border-color: var(--accent); }
 .scan-cap { text-align: center; margin: 10px 0 0; }
+.stages { list-style: none; padding: 0; margin: 14px 2px 4px; }
+.stages li { display: flex; align-items: center; gap: 10px; margin: 8px 0; color: var(--muted); }
+.stages .mk { width: 22px; height: 22px; border-radius: 50%; flex: none; display: grid; place-items: center; }
+.stages .done .mk { background: var(--ok); }
+.stages .done .mk::after { content: ""; width: 9px; height: 5px; border: solid #fff; border-width: 0 0 2.5px 2.5px; transform: translateY(-1px) rotate(-45deg); }
+.stages .now { color: var(--ink); }
+.stages .now .mk { border: 3px solid var(--line); border-top-color: var(--accent); animation: spin 1s linear infinite; }
+.asks { margin: 8px 0; padding-left: 22px; font-size: 17px; font-weight: 500; }
+.asks li { margin: 8px 0; }
+summary { -webkit-tap-highlight-color: transparent; }
 
 /* each screen slides in a little */
 .screen.enter > * { animation: nk-rise .32s ease both; }
