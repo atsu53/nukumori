@@ -26,6 +26,8 @@ button, input, textarea { font-family: var(--font); }
 .top { display: flex; align-items: center; gap: 12px; height: 52px; padding: 0 16px; position: sticky; top: 0; background: var(--bg); z-index: 2; border-bottom: 1px solid var(--rule); }
 .brand { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 16px; letter-spacing: .01em; }
 .brand .logo { width: 22px; height: 22px; }
+.logo-roof { fill: none; stroke: var(--ink); stroke-width: 7; stroke-linejoin: miter; }
+.logo-flame { fill: var(--warm); }
 .progress { margin-left: auto; color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .12em; }
 .bar { position: absolute; left: 0; right: 0; bottom: -1px; height: 2px; }
 .bar i { display: block; height: 100%; width: 0; background: var(--ink); }

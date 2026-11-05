@@ -203,6 +203,7 @@
   }
 
   window.NUKUMORI_ART = {
+    look: "a", planColors: { route: COLD, warm: "#e07a2e", cold: COLD },
     house, pic, layout, scan, startScan,
     slot: (k) => (SLOT[k] ? SLOT[k]() : ""),
     proposal: (id) => (PROP[id] ? PROP[id]().replace('class="pic"', 'class="pic prop"') : ""),

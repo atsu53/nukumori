@@ -2,7 +2,12 @@
 (() => {
   const R = window.NUKUMORI_RULES;
   const CFG = window.NUKUMORI_CONFIG;
-  const A = window.NUKUMORI_ART; // drawings (art.js)
+  // Two looks while the final one is chosen (2026-11-05): A (art.js, style.css) drawn like an architect's
+  // sheet, B (art-b.js, style-b.css) soft. The switch at the bottom right changes it; ?look=a|b and
+  // localStorage keep it. Questions, logic and words are shared; only the drawings and the styles differ.
+  const LOOKS = { a: window.NUKUMORI_ART, b: window.NUKUMORI_ART_B };
+  let look = "a";
+  let A = LOOKS.a; // the drawings of the current look
   const $screen = document.getElementById("screen");
   const $bar = document.getElementById("bar");
   const $back = document.getElementById("back");
@@ -32,10 +37,26 @@
     $progress.hidden = !progress;
     $foot.hidden = !foot;
     if ($bar) { $bar.hidden = bar === null; $bar.firstElementChild.style.width = `${Math.round((bar || 0) * 100)}%`; }
+    $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter"); // B slides screens in; A has no rule for it
     window.scrollTo(0, 0);
   }
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
   $back.addEventListener("click", () => backTarget && backTarget());
+
+  function setLook(k, redraw) {
+    look = LOOKS[k] ? k : "a";
+    A = LOOKS[look];
+    document.getElementById("css-a").disabled = look !== "a";
+    document.getElementById("css-b").disabled = look !== "b";
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.content = look === "b" ? "#f6efe6" : "#f7f6f2";
+    try { localStorage.setItem("nukumori:look", look); } catch {}
+    document.querySelectorAll("#look button").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.look === look)));
+    // Redraw the screen in the new look, except while waiting for Claude or while typing what was checked.
+    const again = { S0, S1, S2, S3, SLook, S5, S6, S7, S8 }[screen];
+    if (redraw && again) again();
+  }
+  document.querySelectorAll("#look button").forEach((b) => b.addEventListener("click", () => setLook(b.dataset.look, true)));
 
   // Photos come first (2026-11-04), before the resident's words, so the slots do not depend on the place.
   function slots() {
@@ -53,19 +74,30 @@
     screen = "S0";
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
-    render(`
+    const lead = "家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。";
+    const steps = [["写真を撮る", "photo"], ["一言と質問", "words"], ["原因と改修案", "result"]];
+    const notes = [
+      "一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。",
+      "目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。",
+      "10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。",
+    ];
+    const buttons = `<button class="btn" id="start">はじめる</button>
+      ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}`;
+    render(look === "b" ? `
+      <div class="hero">${A.house({ mode: "cover" })}</div>
+      <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
+      <p class="lead">${lead}</p>
+      <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
+      ${notes.map((n) => `<p class="small muted">${n}</p>`).join("")}
+      ${buttons}
+    ` : `
       <h1 class="title">その一言から、<br>家の寒さを<br>建築士の目で診る</h1>
       <div class="frame">${A.house({ mode: "cover" })}</div>
       <div class="caption"><span class="lbl">SECTION</span><span class="lbl">断面図・模式</span></div>
-      <p class="lead">家の写真を撮って入れると、建築士の目で見た今の状態が分かります。住む人の一言といくつかの質問で、寒さの原因トップ3と、まず相談したい改修案を出します。自分の家にも、離れて暮らす家族の家にも使えます。</p>
-      <div class="steps"><div><span class="num">01</span><span class="s">写真を撮る</span></div><div><span class="num">02</span><span class="s">一言と質問</span></div><div><span class="num">03</span><span class="s">原因と改修案</span></div></div>
-      <button class="btn" id="start">はじめる</button>
-      ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}
-      <div class="notes">
-        <p>一戸建ての持ち家向けです。マンションや借りている家でも使えますが、窓や外壁の工事は管理組合や大家さんへの相談が先になります。</p>
-        <p>目安であり、現地調査に代わるものではありません。写真と回答はサーバーに保存しません。</p>
-        <p>10の事例を作者（一級建築士）の判断と照らし、10件とも原因と最初の案が一致しました。</p>
-      </div>
+      <p class="lead">${lead}</p>
+      <div class="steps">${steps.map(([s], i) => `<div><span class="num">0${i + 1}</span><span class="s">${s}</span></div>`).join("")}</div>
+      ${buttons}
+      <div class="notes">${notes.map((n) => `<p>${n}</p>`).join("")}</div>
     `);
     on("#start", "click", () => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {} }); S2(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
@@ -229,10 +261,10 @@
     const pt = (q) => `${q.x},${Y(q)}`;
     // Room names are already on the drawing, so only the warm room is labelled; cold spots get numbered badges
     // and are listed below the plan (text on a small photo would collide).
-    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="#4f84b3" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
+    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="${A.planColors.route}" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
     const warm = fp.rooms.find((r) => r.name === fp.warm_room) || (fp.cold_route.length ? { ...fp.cold_route[0], name: fp.warm_room } : null);
-    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="#e07a2e" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
-    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="#4f84b3" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
+    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="${A.planColors.warm}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
+    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
     return `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>
       <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
       ${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
@@ -300,7 +332,9 @@
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
-    return `<div class="frame">${A.house({ mode: "result", marks })}</div><div class="caption"><span class="lbl">SECTION</span><span class="lbl">番号は下の原因の順位</span></div>`;
+    return look === "b"
+      ? `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です。家のどこから冷えるかを、断面の模式図に置きました。</p>`
+      : `<div class="frame">${A.house({ mode: "result", marks })}</div><div class="caption"><span class="lbl">SECTION</span><span class="lbl">番号は下の原因の順位</span></div>`;
   }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
@@ -491,5 +525,8 @@
   }
 
   if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  let firstLook = new URLSearchParams(location.search).get("look");
+  try { firstLook = firstLook || localStorage.getItem("nukumori:look"); } catch {}
+  setLook(firstLook || "a", false);
   S0();
 })();
