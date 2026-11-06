@@ -66,13 +66,13 @@
     screen = "S0";
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
-    const lead = "写真と一言から、家の寒さの原因と、まず相談したい直し方が分かります。";
+    const lead = "建築士の見方を教わった Claude が、写真と一言から、寒さの原因とまず相談したい直し方を見立てます。";
     const steps = [["写真を撮る", "photo"], ["一言と質問", "words"], ["原因と改修案", "result"]];
     const buttons = `<button class="btn" id="start">はじめる</button>
       ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}`;
     render(`
       <div class="hero">${A.house({ mode: "cover" })}</div>
-      <h1 class="title">その一言から、家の寒さを建築士の目で診る</h1>
+      <h1 class="title">その一言から、Claude が家の寒さを診る</h1>
       <p class="lead">${lead}</p>
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       ${buttons}
@@ -210,7 +210,7 @@
     };
     render(`
       <h1>${esc(q.text)}</h1>
-      ${picked ? `<p class="small"><span class="tag">建築士が聞く理由</span>${esc(picked.why)}</p>` : q.note ? `<p class="small muted">${esc(q.note)}</p>` : ""}
+      ${picked ? `<p class="small"><span class="tag">Claude が聞く理由</span>${esc(picked.why)}</p>` : q.note ? `<p class="small muted">${esc(q.note)}</p>` : ""}
       <div class="choices ${lay}">${q.options.map(choice).join("")}</div>
     `, { back: () => { if (state.qIndex === 0) S1(); else if (state.ask && state.qIndex === nFixed) SLook(); else { state.qIndex--; S3(); } }, progress, bar });
     on(".choice", "click", (e) => { state.answers[qid] = e.currentTarget.dataset.o; state.qIndex++; S3(); });
@@ -456,7 +456,7 @@
     const x = r();
     render(`
       <h1>家で、確かめてきたこと</h1>
-      <p class="muted">見てきたことを、ひとつずつ書いてください。まだのものは空のままで大丈夫です。建築士が見立てを更新します。</p>
+      <p class="muted">見てきたことを、ひとつずつ書いてください。まだのものは空のままで大丈夫です。Claude が見立てを更新します。</p>
       ${x.checks.map((c, i) => `<div class="card"><p class="small">${esc(c)}</p><textarea class="confirm" data-i="${i}" rows="2" placeholder="見たこと・分かったこと（例：断熱材は見えなかった）"></textarea></div>`).join("")}
       <button class="btn" id="go" disabled>この内容で診断し直す</button>
     `, { back: S7, foot: true });
