@@ -155,7 +155,7 @@
     const list = slots();
     render(`
       <h1>まず、家の写真を入れてください</h1>
-      <p class="muted">${isSelf() ? "撮るか、スマホの写真から選びます。" : "撮るか、送ってもらった写真を選びます。"}写真を見てから、聞くことを決めます。なくても進めます。</p>
+      <p class="muted">${isSelf() ? "撮るか、写真から選びます。" : "撮るか、送ってもらった写真を選びます。"}写真を見てから、聞くことを決めます。なくても進めます。</p>
       <div class="photo-slots">
         ${list.map((s) => {
           const p = state.photos[s.key];
