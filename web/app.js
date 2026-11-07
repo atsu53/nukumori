@@ -568,8 +568,18 @@
     aircon_heating: "エアコンの暖房を足すとしたら、どこにつけられますか",
     ventilation: "断熱とあわせて、換気はどう見直せばよいですか",
   };
+  // The heater question follows what the family answered about the dressing room (q4), so it never asks for
+  // a heater where one already is.
+  function askBuilder(id) {
+    if (id === "bath_heater") {
+      const q4 = state.answers.q4;
+      if (q4 === "持ち運びのヒーターを使う") return "今は持ち運びのヒーターです。脱衣所と浴室に、据え付けの暖房をつけられますか";
+      if (q4 === "浴室暖房乾燥機がある") return "浴室には暖房があります。脱衣所にも暖房をつけられますか";
+    }
+    return ASK_BUILDER[id];
+  }
   function builderQuestions() {
-    return r().proposals.filter((p) => ASK_BUILDER[p.id]).sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => ASK_BUILDER[p.id]);
+    return r().proposals.filter((p) => ASK_BUILDER[p.id]).sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => askBuilder(p.id));
   }
 
   // Two sheets (2026-11-07): the short one is what gets handed over; the full one is there for the builder
@@ -644,14 +654,15 @@
       <div class="paper">
       <div class="paper-head"><span>nukumori の見立て</span><span>${stamp}</span></div>
       <h1>家のカルテ</h1>
-      <p class="small muted">「${esc(state.words)}」の家。工務店にはこの画面を見せるか、下のコピーを送ります。</p>
+      <p class="small muted">「${esc(state.words)}」の家。工務店に相談する際は、この画面を見せるか、下のコピーを送ります。</p>
       <div class="karte-pics ${plan ? "" : "one"}"><div class="house-wrap">${A.house({ mode: "result", marks: (x.causes || []).map((c) => ({ id: c.id, rank: c.rank })) })}</div>${plan}</div>
       <div class="card verdict">
-        <div class="v"><span class="k">原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
+        <div class="v"><span class="k">寒さの原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
         ${first ? `<div class="v"><span class="k">工務店に相談</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span></div></div>` : ""}
-        ${today ? `<div class="v"><span class="k">今日できる</span><div><b>${esc(today.name)}</b></div></div>` : ""}
+        ${today ? `<div class="v"><span class="k">今日できること</span><div><b>${esc(today.name)}</b></div></div>` : ""}
       </div>
-      <div class="card first"><span class="k">工務店に聞くこと</span>
+      <div class="card first"><span class="k">工務店に聞くこと（この家でできるか）</span>
+        <p class="small muted">上の見立てが、この家で本当にできるかは、現地を見た工務店にしか分かりません。その確かめに使う3つです。</p>
         <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
       <div class="card"><span class="k">この家</span>
         <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事", a.q9 ? `「${a.q9}」まで` : ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>

@@ -276,3 +276,5 @@ details.sec[open]:last-of-type > summary { border-bottom: 0; }
 .update-bar { position: sticky; top: 0; z-index: 4; background: #fff4e5; border-bottom: 1px solid #f0d4b0; padding: 8px 16px; font-size: 14px; text-align: center; }
 .update-bar .link { padding: 0 4px; }
 .diag { font-size: 12px; }
+.paper .verdict .v { grid-template-columns: 96px 1fr; }
+.paper .card.first > p.small.muted { margin: 2px 0 6px; }
