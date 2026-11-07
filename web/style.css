@@ -249,3 +249,14 @@ details.sec + .notice, details.sec + .cta-bar, details.sec + button { margin-top
 .house-cap .item { display: inline-block; white-space: nowrap; margin: 0 10px 2px 0; }
 details.sec:last-of-type > summary { border-bottom: 1px solid var(--line); }
 details.sec[open]:last-of-type > summary { border-bottom: 0; }
+
+/* 2026-11-07 night: wait-screen stages not yet reached, and the karte's label/value rows */
+.stages .todo { opacity: .55; }
+.stages .todo .mk { border: 2px solid var(--line); }
+.kv { margin: 4px 0 2px; }
+.kv div { display: grid; grid-template-columns: 88px 1fr; gap: 8px; padding: 7px 0; border-top: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+.kv div:first-child { border-top: 0; }
+.kv span { color: var(--muted); }
+.kv b { font-weight: 600; word-break: auto-phrase; }
+.title { margin-top: 2px; }
+.steps { margin: 18px 0 10px; }

@@ -43,7 +43,7 @@ export const ASK_SCHEMA = obj({
   // Per photo: what can be seen (seen) and what cannot (unknown), a short phrase each.
   photo_notes: {
     type: "array",
-    items: obj({ photo: { type: "integer" }, seen: { type: "string" }, unknown: { type: "string" } }),
+    items: obj({ photo: { type: "integer" }, label: { type: "string" }, seen: { type: "string" }, unknown: { type: "string" } }),
   },
   // Read from the floor-plan photo, if there is one. photo = 0 when there is none.
   floor_plan: obj({

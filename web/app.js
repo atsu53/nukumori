@@ -78,8 +78,8 @@
       <div class="hero">${A.house({ mode: "cover" })}</div>
       <h1 class="title">「お風呂が寒い」から、Claude が家の寒さを診る</h1>
       <p class="lead">${lead}</p>
-      <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       ${buttons}
+      <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       <div class="society">国の推計では、今の断熱の基準を満たす家は約18％、断熱がまったくない家は約24％です（令和4年度時点）。</div>
     `, { foot: true });
     on("[data-who]", "click", (e) => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {}, who: e.currentTarget.dataset.who }); S2(); });
@@ -362,7 +362,9 @@
   const seenOf = (f) => f.seen ?? f.note ?? "";
   const unknownOf = (f) => f.unknown ?? "";
   function photoThumb(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? `<img class="thumb" src="${p.preview}" alt="写真${n}">` : ""; }
-  function photoLabel(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
+  // Claude names the photo by what is in it (ask.photo_notes.label); the slot name is only the fallback,
+  // because photos picked together fill the slots in order (2026-11-07 night).
+  function photoLabel(n) { const note = ((state.ask && state.ask.photo_notes) || []).find((x) => x.photo === n); if (note && note.label) return note.label; const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
   const previews = () => Object.keys(state.photos).sort().map((k) => state.photos[k].preview);
   const findingCard = (f) => `<div class="shot">${photoThumb(f.photo)}<div><span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p class="small"><b>見えた</b>　${esc(seenOf(f))}</p>${unknownOf(f) ? `<p class="small muted"><b>分からない</b>　${esc(unknownOf(f))}</p>` : ""}</div></div>`;
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
@@ -594,8 +596,7 @@
       <div class="card first"><span class="k">工務店に聞くこと</span>
         <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
       <div class="card"><span class="k">この家</span>
-        <p class="small">${esc(basics)}</p>
-        ${answered.length ? `<p class="small muted">${answered.map(esc).join("／")}</p>` : ""}
+        <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事", a.q9 ? `「${a.q9}」まで` : ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>
         ${confirmed.length ? `<p class="small"><b>${esc(fam)}が家で確かめた</b>　${confirmed.map((c) => esc(c.replace(/^・/, ""))).join("／")}</p>` : ""}
         ${checks.length ? `<p class="small"><b>現地で見てほしいこと</b>　${checks.map((c) => esc(c.what)).join("、")}</p>` : ""}</div>
       <button class="btn" id="copySheet">このカルテをコピー</button>

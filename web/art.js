@@ -196,6 +196,11 @@
   const logo = () => `<svg class="logo" viewBox="0 0 96 96" aria-hidden="true"><path d="M48 18 L18 46 H28 V76 H68 V46 H78 Z" fill="none" stroke="${WARM}" stroke-width="7" stroke-linejoin="round"/><path d="M40 72 C40 60 56 58 56 46 C56 40 52 36 48 34 C50 42 44 46 42 50 C38 56 38 62 40 72 Z" fill="${WARM}"/></svg>`;
 
   // ---------- the scan while Claude reads the photos ----------
+  // The wait screens tick through three stages so the wait reads as work (from the reference apps, 2026-11-07).
+  const STAGES = {
+    ask: ["写真を見ています", "家の特徴を読み取っています", "聞くことを選んでいます"],
+    diagnose: ["原因を絞っています", "相談する順番を決めています", "暮らしの言葉に直しています"],
+  };
   const CAPTIONS = {
     ask: ["サッシの材質とガラス", "浴室の種類", "暖房器具", "結露やカビの跡", "床・壁・天井の仕上げ", "間取りと、寒い場所までの道筋"],
     diagnose: ["原因を絞っています", "改修案を並べています", "暮らしの言葉に直しています"],
@@ -206,13 +211,14 @@
       ? previews.map((src, k) => `<img src="${src}" alt="" class="${k === 0 ? "on" : ""}">`).join("")
       : `<div class="scan-house">${house({ mode: "plain" })}</div>`;
     return `<div class="scan" data-kind="${kind}"><div class="scan-frame ${previews.length ? "photo" : "paper"}">${inner}<div class="scan-grid"></div><div class="scan-line"></div><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i></div>
-      <p class="scan-cap"><span class="tag">${kind === "ask" ? "見ているところ" : "いまの作業"}</span><b>${caps[0]}</b></p></div>`;
+      <p class="scan-cap"><span class="tag">${kind === "ask" ? "見ているところ" : "いまの作業"}</span><b>${caps[0]}</b></p>
+      <ul class="stages">${(STAGES[kind] || STAGES.ask).map((t, i) => `<li class="${i === 0 ? "now" : "todo"}"><span class="mk"></span>${i === 0 ? `<b>${t}</b>` : t}</li>`).join("")}</ul></div>`;
   }
   // The second wait: no more looking at photos, so no scan line. The house is drawn, with what is already done.
   function gather(hasPhotos) {
     const row = (done, text) => `<li class="${done ? "done" : "now"}"><span class="mk"></span>${done ? text : `<b>${text}</b>`}</li>`;
     return `<div class="scan gather" data-kind="diagnose"><div class="house-wrap">${house({ mode: "cover" })}</div>
-      <ul class="stages">${hasPhotos ? row(true, "写真を見ました") : ""}${row(true, "答えを聞きました")}${row(false, "原因と直し方をまとめています")}</ul>
+      <ul class="stages">${hasPhotos ? row(true, "写真を見ました") : ""}${row(true, "答えを聞きました")}${STAGES.diagnose.map((t, i) => `<li class="${i === 0 ? "now" : "todo"}"><span class="mk"></span>${i === 0 ? `<b>${t}</b>` : t}</li>`).join("")}</ul>
       <p class="scan-cap"><span class="tag">いまの作業</span><b>${CAPTIONS.diagnose[0]}</b></p></div>`;
   }
   // Rotates the photos and the caption; stops by itself once the screen is replaced.
@@ -228,6 +234,8 @@
       n++;
       if (imgs.length > 1) imgs.forEach((im, k) => im.classList.toggle("on", k === n % imgs.length));
       if (cap) cap.textContent = caps[n % caps.length];
+      // every 3 ticks (about 8 s) the current stage is done and the next one starts; the last one stays
+      if (n % 3 === 0) { const now = el.querySelector(".stages .now"); const next = now && now.nextElementSibling; if (next && next.classList.contains("todo")) { now.classList.replace("now", "done"); now.innerHTML = `<span class="mk"></span>${now.textContent}`; next.classList.replace("todo", "now"); next.innerHTML = `<span class="mk"></span><b>${next.textContent}</b>`; } }
     }, 2600);
   }
 
