@@ -504,7 +504,7 @@
       <div class="tl">
         ${today.length ? `<div class="stop now"><span class="dot">今</span><div class="when">今日できる・工事なし</div><b>${esc(today[0].name)}</b>${todayRest.length ? `<p>ほかに、${todayRest.map(esc).join("／")}</p>` : ""}
           ${more(today.map((a) => `<p class="small"><b>${esc(a.name)}</b>　${esc(a.description)}</p>`).join(""), "くわしく")}</div>` : ""}
-        ${first ? `<div class="stop"><span class="dot">次</span><div class="when">${noWork ? "工事をするなら、まずこれ（次に直すとき）" : "工務店に相談・まずこれ"}</div><b>${esc(first.name)}</b><p>${sizeTag(first)}</p><p>${esc(first.expected_change)}</p>${rentNote}
+        ${first ? `<div class="stop"><span class="dot">次</span><div class="when">${noWork ? "工事をするなら、まずこれ（次に直すとき）" : "工事で直すなら、まずこれ"}</div><b>${esc(first.name)}</b><p>${sizeTag(first)}</p><p>${esc(first.expected_change)}</p>${rentNote}
           ${more(`<p class="small">${esc(first.description)}</p><p class="small"><b>なぜこの順位か：</b>${esc(first.why_this_rank)}</p>${subsidy(first)}
           ${others.length ? `<p class="small"><b>ほかの案</b></p>${others.map(propCard).join("")}` : ""}
           ${bathStages ? `<p class="small"><b>お風呂の寒さ対策は、どの順番で進めるか</b></p>${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
@@ -676,11 +676,11 @@
       <div class="karte-pics ${plan ? "" : "one"}"><div class="house-wrap">${A.house({ mode: "result", marks: (x.causes || []).map((c) => ({ id: c.id, rank: c.rank })) })}</div>${plan}</div>
       <div class="card verdict">
         <div class="v"><span class="k">寒さの原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
-        ${first ? `<div class="v"><span class="k">${noWork ? "工事をするなら" : "工務店に相談"}</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span>${rentNote}</div></div>` : ""}
+        ${first ? `<div class="v"><span class="k">${noWork ? "工事をするなら" : "まず直すなら"}</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span>${rentNote}</div></div>` : ""}
         ${today ? `<div class="v"><span class="k">今日できること</span><div><b>${esc(today.name)}</b></div></div>` : ""}
       </div>
-      <div class="card first"><span class="k">工務店に聞くこと（この家でできるか）</span>
-        <p class="small muted">${noWork ? "今は工事をしない方針なので、将来のために。" : ""}上の見立てが、この家で本当にできるかは、現地を見た工務店にしか分かりません。その確かめに使う${qs.length}つです。</p>
+      <div class="card first"><span class="k">工務店に聞くこと</span>
+        <p class="small muted">${noWork ? "今は工事をしない方針なので、将来のために。" : ""}この家でできるか、どんな工事になるかは現地で決まります。</p>
         <ol class="asks">${qs.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
       <div class="card"><span class="k">この家</span>
         <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事の大きさ", a.q9 || ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>

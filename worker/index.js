@@ -65,7 +65,7 @@ function validate(body) {
   if (!body || typeof body !== "object") return { error: "bad_request" };
   const { who = "family", parent_words = "", place = "", time_of_day = "", fixed = {}, answers = {}, inferred_from_photos = [], ask = null, rule_result = {}, previous = null, confirmed = [], photos = [] } = body;
   if (who !== "family" && who !== "self") return { error: "bad_who" };
-  if (typeof parent_words !== "string" || parent_words.length > 300) return { error: "bad_parent_words" };
+  if (typeof parent_words !== "string" || !parent_words.trim() || parent_words.length > 300) return { error: "bad_parent_words" };
   if (typeof place !== "string" || place.length > 50) return { error: "bad_place" };
   if (typeof time_of_day !== "string" || time_of_day.length > 50) return { error: "bad_time_of_day" };
   if (typeof fixed !== "object" || typeof answers !== "object" || typeof rule_result !== "object" || typeof ask !== "object") return { error: "bad_answers" };
