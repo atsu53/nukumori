@@ -274,7 +274,7 @@
   }
 
   // The floor-plan photo with rooms, the warm room, the route to the cold place and the cold spots drawn on it.
-  function planHtml(compact) {
+  function planHtml(compact, picOnly) {
     const fp = state.ask && state.ask.floor_plan;
     const p = fp && state.photos[(state.sent || [])[fp.photo - 1]];
     if (!fp || !p) return "";
@@ -289,7 +289,9 @@
     const warm = fp.rooms.find((r) => r.name === fp.warm_room) || (fp.cold_route.length ? { ...fp.cold_route[0], name: fp.warm_room } : null);
     const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="${A.planColors.warm}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
     const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
-    return `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>
+    const picDiv = `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>`;
+    if (picOnly) return picDiv;
+    return `${picDiv}
       <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
       ${compact
         ? `<p class="small">${fp.cold_points.map((c, i) => `<span class="rank">${i + 1}</span><b>${esc(c.name)}</b>`).join("　")}</p>${more(`${fp.cold_points.map((c, i) => `<p class="small"><b>${i + 1}. ${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`)}`
@@ -449,7 +451,7 @@
       ${bath ? BATH_NOTICE : ""}
       <p class="small muted">金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、窓口で最新を確かめてください。</p>
       ${again ? `<button class="link small" id="confirm">さらに確かめたことを足して、もう一度更新する</button>` : ""}
-      <div class="cta-bar ${again ? "one" : ""}">${again ? "" : `<button class="btn secondary" id="confirm2">${isSelf() ? "確かめてから更新" : "家で確かめてから更新"}</button>`}<button class="btn" id="next">工務店に相談する準備</button></div>
+      <div class="cta-bar ${again ? "one" : ""}">${again ? "" : `<button class="btn secondary" id="confirm2">${isSelf() ? "確かめてから更新" : "家で確かめてから更新"}</button>`}<button class="btn" id="next">家のカルテへ</button></div>
     `, { back: S0 });
     on("#copyMsg", "click", () => copy(x.message_to_parent, "#copyMsg"));
     on("#confirm, #confirm2", "click", SConfirm);
@@ -531,7 +533,7 @@
   }
   function sheetShort() {
     const { x, a, fam, asked, inferred, confirmed, first } = sheetHead();
-    const L = ["工務店に見せる相談シート（nukumori で作成）", ""];
+    const L = ["家のカルテ（nukumori で作成。工務店に見せる相談シート）", ""];
     L.push("■ 聞きたいこと", ...builderQuestions().map((q, i) => `${i + 1}. ${q}`), "");
     L.push("■ 困っていること", `「${state.words}」（${x.place || state.place || "場所は未記入"}${state.time ? "・" + state.time : ""}）`, "");
     L.push("■ 家のこと", `・${a.q0 || "住まいの種類：未回答"}／${a.q1 || "築年：未回答"}／工事は「${a.q9 || "未回答"}」まで`, ...asked, ...inferred, "");
@@ -574,27 +576,34 @@
     return lines.join("\n");
   }
 
+  // The last screen is the house's karte (2026-11-07 evening, from the author's answer: what stays must be seen
+  // at a glance, not read). The drawings first, then the verdict in short rows, then what to ask the builder.
   function S8() {
     screen = "S8";
     const { x, a, fam, asked, inferred, confirmed, first } = sheetHead();
-    const basics = [a.q0, a.q1, a.q9 ? `工事は「${a.q9}」まで` : ""].filter(Boolean).join("・");
+    const basics = [a.q0, a.q1, a.q9 ? `工事は「${a.q9}」まで` : ""].filter(Boolean).join("／");
     const answered = [...asked, ...inferred].map((l) => l.replace(/^・/, "").replace(/（写真からの AI の推定。要確認）$/, "（写真から）"));
     const checks = checksOf(x);
+    const today = (x.today_actions || [])[0];
+    const d = new Date(), stamp = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
+    const plan = planHtml(false, true);
     render(`
-      <h1>工務店に相談する</h1>
-      <p class="muted small">この3枚が相談シートです。そのまま見せるか、コピーして送ります。</p>
-      <div class="card first"><span class="k">聞くこと</span>
+      <h1>家のカルテ</h1>
+      <p class="small muted">「${esc(state.words)}」の家。${stamp} 時点の見立て。工務店にはこの画面を見せるか、下のコピーを送ります。</p>
+      <div class="karte-pics ${plan ? "" : "one"}"><div class="house-wrap">${A.house({ mode: "result", marks: (x.causes || []).map((c) => ({ id: c.id, rank: c.rank })) })}</div>${plan}</div>
+      <div class="card verdict">
+        <div class="v"><span class="k">原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
+        ${first ? `<div class="v"><span class="k">まず相談</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span></div></div>` : ""}
+        ${today ? `<div class="v"><span class="k">今日から</span><div><b>${esc(today.name)}</b></div></div>` : ""}
+      </div>
+      <div class="card first"><span class="k">工務店に聞くこと</span>
         <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
-      <div class="card"><span class="k">この家のこと</span>
-        <p class="small">「${esc(state.words)}」${x.place || state.place ? `（${esc(x.place || state.place)}）` : ""}</p>
-        ${basics ? `<p class="small">${esc(basics)}</p>` : ""}
-        ${answered.length ? `<p class="small muted">${answered.map(esc).join("<br>")}</p>` : ""}
-        ${confirmed.length ? `<p class="small"><b>${esc(fam)}が家で確かめた</b><br>${confirmed.map((c) => esc(c.replace(/^・/, ""))).join("<br>")}</p>` : ""}</div>
-      <div class="card"><span class="k">見立ての要点（目安）</span>
-        <p class="small"><b>原因</b>　${x.causes.map((c) => esc(c.name)).join(" → ")}</p>
-        ${first ? `<p class="small"><b>まず相談</b>　${esc(first.name)}</p>` : ""}
+      <div class="card"><span class="k">この家</span>
+        <p class="small">${esc(basics)}</p>
+        ${answered.length ? `<p class="small muted">${answered.map(esc).join("／")}</p>` : ""}
+        ${confirmed.length ? `<p class="small"><b>${esc(fam)}が家で確かめた</b>　${confirmed.map((c) => esc(c.replace(/^・/, ""))).join("／")}</p>` : ""}
         ${checks.length ? `<p class="small"><b>現地で見てほしいこと</b>　${checks.map((c) => esc(c.what)).join("、")}</p>` : ""}</div>
-      <button class="btn" id="copySheet">このシートをコピー</button>
+      <button class="btn" id="copySheet">このカルテをコピー</button>
       ${more(`<div class="sheet">${esc(sheetFull())}</div><button class="btn secondary" id="copyFull">詳しい版をコピー</button>`, "詳しい版（写真の所見・理由・見積の分け方）")}
       <p class="small muted center">この端末に保存しました。表紙の「前回の結果を見る」から戻れます。写真は保存しません。</p>
     `, { back: S5, foot: true });

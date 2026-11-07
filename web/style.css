@@ -208,3 +208,9 @@ summary { -webkit-tap-highlight-color: transparent; }
 .screen.enter > .cta-bar { animation: none; }
 .card .k { display: inline-block; font-size: 12px; font-weight: 700; color: var(--accent); letter-spacing: .04em; margin-bottom: 4px; }
 .card.first .k { color: var(--accent); }
+/* the karte: both drawings side by side, then short rows */
+.karte-pics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: start; margin: 8px 0 4px; }
+.karte-pics.one { grid-template-columns: 1fr; }
+.karte-pics .house-wrap, .karte-pics .plan { margin: 0; }
+.verdict .v .rank { min-width: 22px; height: 22px; line-height: 22px; font-size: 12px; margin-right: 6px; }
+.verdict .v p.small { margin: 2px 0; }
