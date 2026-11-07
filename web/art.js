@@ -199,13 +199,16 @@
   // The wait screens tick through three stages so the wait reads as work (from the reference apps, 2026-11-07).
   const STAGES = {
     ask: ["写真を見ています", "家の特徴を読み取っています", "聞くことを選んでいます"],
+    askNo: ["住まいの種類と築年から当たりをつけています", "聞くことを選んでいます"],
     diagnose: ["原因を絞っています", "相談する順番を決めています", "暮らしの言葉に直しています"],
   };
   const CAPTIONS = {
     ask: ["サッシの材質とガラス", "浴室の種類", "暖房器具", "結露やカビの跡", "床・壁・天井の仕上げ", "間取りと、寒い場所までの道筋"],
+    askNo: ["築年のころの断熱の水準", "寒い場所と暖房の仕方", "聞けば分かること"],
     diagnose: ["原因を絞っています", "改修案を並べています", "暮らしの言葉に直しています"],
   };
   function scan(previews = [], kind = "ask") {
+    if (kind === "ask" && !previews.length) kind = "askNo"; // no photos: the stages do not claim to look at any
     const caps = CAPTIONS[kind] || CAPTIONS.ask;
     const inner = previews.length
       ? previews.map((src, k) => `<img src="${src}" alt="" class="${k === 0 ? "on" : ""}">`).join("")

@@ -253,7 +253,7 @@
     if (state.ask && state.askKey === key) return SLook();
     state.ask = null; state.inferred = {};
     render(`
-      <h1>写真を見て、聞くことを選んでいます</h1>
+      <h1>${Object.keys(state.photos).length ? "写真を見て、聞くことを選んでいます" : "答えから、聞くことを選んでいます"}</h1>
       ${A.scan(previews(), "ask")}
       <p class="muted">このあと2〜3問だけ聞きます。20秒ほどかかります。</p>
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
