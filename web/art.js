@@ -111,10 +111,10 @@
       "どちらも直していない": () => svg(`<rect x="6" y="12" width="24" height="22" stroke="${ALU}" stroke-width="3" fill="${GLASS}"/><path d="M18 12 V34" stroke="${ALU}" stroke-width="2"/><path d="M32 36 H60 V42 a6 6 0 0 1 -6 6 H38 a6 6 0 0 1 -6 -6 Z" fill="${PAPER}"/><path d="M8 54 H58" stroke="${MUTED}" stroke-dasharray="3 5"/>`),
     },
     q2: {
-      "アルミ枠で1枚ガラス": () => win({}),
-      "アルミ枠で2枚ガラス（複層）": () => win({ double: true }),
-      "樹脂や木の枠で2枚ガラス": () => win({ frame: WOOD, double: true }),
-      "内窓がついている": () => win({ inner: true }),
+      "アルミの枠で、ガラスは1枚": () => win({}),
+      "アルミの枠で、ガラスは2枚（ペアガラス）": () => win({ double: true }),
+      "室内側の枠が白いプラスチック（樹脂）か木で、ガラスは2枚以上": () => win({ frame: WOOD, double: true }),
+      "内窓（二重窓）がついている": () => win({ inner: true }),
     },
     q3: {
       "タイル張りの昔ながらの浴室": () => tileBath(),
