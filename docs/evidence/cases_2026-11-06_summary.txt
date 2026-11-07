@@ -1,0 +1,45 @@
+#02_window_done 16s | 寝室が寒くて眠れない
+  causes: 1 床下からの冷え（likely） / 2 壁・天井の断熱不足（likely） / 3 窓から熱が逃げている（needs_check）
+  first: 床の断熱 | others: 壁・天井の断熱、エアコン暖房の活用、今の窓の内側にもう1枚窓をつける（内窓）
+  today: 厚手のカーテンを床まで下げる、寝る前に寝室を暖めておく、廊下やトイレも暖める
+  checks: 5 | overrides: 1 | flags: none
+#03_open_stove 19s | こたつから出られない
+  causes: 1 窓から熱が逃げている（almost_certain） / 2 窓まわりの隙間風（needs_check） / 3 換気や湿気の問題（likely）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: 換気の見直し、エアコン暖房の活用
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う、廊下やトイレも暖める
+  checks: 4 | overrides: 3 | flags: none
+#04_many_unknown 17s | 家じゅう寒い
+  causes: 1 窓から熱が逃げている（needs_check） / 2 壁・天井の断熱不足（needs_check） / 3 床下からの冷え（needs_check）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: 脱衣所・浴室の暖房、床の断熱、壁・天井の断熱
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う、入浴前に脱衣所と浴室を暖める
+  checks: 5 | overrides: 1 | flags: none
+#05_condo 17s | 朝、台所が冷蔵庫みたい
+  causes: 1 窓から熱が逃げている（likely） / 2 暖房が台所まで届いていない（needs_check） / 3 窓や換気扇まわりの隙間風（needs_check）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: エアコン暖房の活用、換気の見直し
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う
+  checks: 4 | overrides: 1 | flags: none
+#06_rental 19s | 廊下とトイレが寒い
+  causes: 1 廊下・トイレが暖房されていない（likely） / 2 窓から熱が逃げている（likely） / 3 床下からの冷え（likely）
+  first: トイレ・廊下の暖房（小さな暖房器具を置く） | others: エアコン暖房の活用、今の窓の内側にもう1枚窓をつける（内窓）
+  today: トイレや廊下も暖める、厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う
+  checks: 5 | overrides: 3 | flags: none
+#07_no_work 19s | お風呂場が寒い
+  causes: 1 脱衣所・浴室が暖房されていない（almost_certain） / 2 浴室そのものが冷える（likely） / 3 窓から熱が逃げている（likely）
+  first: 脱衣所・浴室の暖房 | others: 今の窓の内側にもう1枚窓をつける（内窓）、浴室の断熱改修（ユニットバス化か窓の対策）
+  today: 入浴前に脱衣所と浴室を暖める、湯温とつかる時間の目安を守る、窓に断熱シートや隙間テープを使う
+  checks: 4 | overrides: 3 | flags: none
+#08_moving_soon 14s | 寝室が寒い。来年には施設に入るかもしれない
+  causes: 1 窓から熱が逃げている（almost_certain） / 2 壁・天井の断熱不足（likely） / 3 床下からの冷え（likely）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: 換気の見直し、床の断熱
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う、廊下やトイレも暖める
+  checks: 5 | overrides: 0 | flags: none
+#09_leak 19s | 天井にしみがあって、部屋が寒い
+  causes: 1 窓から熱が逃げている（almost_certain） / 2 壁・天井の断熱不足（likely） / 3 床下からの冷え（likely）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: 屋根・外壁の点検と雨漏りの修理、壁・天井の断熱、床の断熱、換気の見直しと暖房の切り替え
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う、廊下やトイレも暖める
+  checks: 5 | overrides: 2 | flags: none
+#10_summer_too 20s | 冬は寒いし夏は暑い。2階の寝室
+  causes: 1 天井（屋根の下）と壁の断熱不足（likely） / 2 窓から熱が逃げている（likely） / 3 エアコンの能力や置き場所が部屋に合っていない（needs_check）
+  first: 今の窓の内側にもう1枚窓をつける（内窓） | others: 天井の断熱を足す（天井断熱）、寝室のエアコンを見直す（エアコン暖房の活用）、窓の交換
+  today: 厚手のカーテンを床まで下げる、窓に断熱シートや隙間テープを使う
+  checks: 5 | overrides: 2 | flags: none

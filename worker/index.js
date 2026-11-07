@@ -47,6 +47,19 @@ function rateLimited(request) {
   return recent.length > RATE_MAX;
 }
 
+// The platform rate limiter (binding RL in wrangler.jsonc) counts across isolates; the in-memory map is
+// only the fallback when the binding is missing (local dev without it).
+async function rateLimitedBy(request, env) {
+  if (env.RL) {
+    try {
+      const ip = request.headers.get("CF-Connecting-IP") || "local";
+      const { success } = await env.RL.limit({ key: ip });
+      return !success;
+    } catch {}
+  }
+  return rateLimited(request);
+}
+
 // Returns { input } or { error }.
 function validate(body) {
   if (!body || typeof body !== "object") return { error: "bad_request" };
@@ -132,10 +145,13 @@ export default {
     if (!step) return fail("not_found", 404, origin);
     if (request.method !== "POST") return fail("method_not_allowed", 405, origin);
     if (!origin) return fail("origin_not_allowed", 403, null);
-    if (rateLimited(request)) return fail("rate_limited", 429, origin, true);
+    if (await rateLimitedBy(request, env)) return fail("rate_limited", 429, origin, true);
 
-    const size = Number(request.headers.get("Content-Length") || 0);
-    if (size > MAX_BODY_BYTES) return fail("too_large", 413, origin);
+    // The length must be declared (a browser fetch with a string body always declares it), so the body is
+    // never read into memory before it is checked.
+    const len = request.headers.get("Content-Length");
+    if (len === null || !/^\d+$/.test(len)) return fail("length_required", 411, origin);
+    if (Number(len) > MAX_BODY_BYTES) return fail("too_large", 413, origin);
 
     let body;
     try {

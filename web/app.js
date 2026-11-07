@@ -52,6 +52,7 @@
     } catch {}
     return out;
   }
+  let BOOT_NOTE = bootNote(); // read once; going back to the cover must not show it again
   const saveErr = (m) => { try { localStorage.setItem("nk_err", `${String(m).slice(0, 160)} @${screen} ${new Date().toISOString().slice(11, 19)}`); } catch {} };
   window.addEventListener("error", (e) => saveErr(e.message || "error"));
   window.addEventListener("unhandledrejection", (e) => saveErr((e.reason && e.reason.message) || e.reason || "rejection"));
@@ -86,7 +87,7 @@
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
     const lead = "建築士の見方を教わった Claude が、写真と一言から、寒さの原因とまず相談したい直し方を見立てます。";
-    const note = bootNote();
+    const note = BOOT_NOTE; BOOT_NOTE = "";
     const steps = [["写真を撮る", "photo"], ["一言と質問", "words"], ["原因と直し方", "result"]];
     // Whose house is the first tap (2026-11-07 evening: the separate "どの家を診ますか" screen is gone).
     const buttons = `<div class="choices tiles start">
@@ -130,7 +131,7 @@
     render(`
       <h1>${isSelf() ? "どこが寒いですか" : "家族は、なんて言っていますか"}</h1>
       <p class="small muted">${isSelf() ? "思ったままの言葉で大丈夫です。" : "聞いた言葉のままで大丈夫です。"}</p>
-      <textarea id="words" placeholder="例：お風呂場が寒いです">${esc(state.words)}</textarea>
+      <textarea id="words" maxlength="300" placeholder="例：お風呂場が寒いです">${esc(state.words)}</textarea>
       <p class="small muted">よくある一言（押すと入ります）</p>
       <div class="chips">
         ${["お風呂場が寒い", "脱衣所で着替えるのがつらい", "朝、台所が冷蔵庫みたい", "寝室が寒くて眠れない", "こたつから出られない", "廊下とトイレが寒い", "家じゅう寒い"].map((t) => `<button class="chip" data-t="${esc(t)}">${esc(t)}</button>`).join("")}
@@ -140,7 +141,7 @@
     const $w = $screen.querySelector("#words");
     const $n = $screen.querySelector("#next");
     $w.addEventListener("input", () => { state.words = $w.value; $n.disabled = !state.words.trim(); });
-    on(".chip", "click", (e) => { $w.value = (($w.value.trim() ? $w.value.trim() + "。" : "") + e.currentTarget.dataset.t); state.words = $w.value; $n.disabled = false; });
+    on(".chip", "click", (e) => { $w.value = (($w.value.trim() ? $w.value.trim() + "。" : "") + e.currentTarget.dataset.t).slice(0, 300); state.words = $w.value; $n.disabled = false; });
     $n.addEventListener("click", () => { Object.assign(state, R.detect(state.words)); state.qIndex = 0; S3(); });
   }
 
@@ -276,21 +277,27 @@
   function fixedAnswers() { return Object.fromEntries(R.FIXED.map((q) => [q, state.answers[q] || ""])); }
   function baseBody() { return { who: isSelf() ? "self" : "family", parent_words: state.words, place: state.place, time_of_day: state.time, fixed: fixedAnswers(), photos: sentPhotos() }; }
 
+  // A request that was left behind (the person went back and changed an answer) must not take over a
+  // later screen when its answer arrives: every /ask and /diagnose carries a sequence number.
+  let reqSeq = 0;
+
   // ---------- S3a Claude reads the photos and picks 2-3 questions (/ask) ----------
   async function SAsk() {
     screen = "SAsk";
     const key = JSON.stringify([state.who, state.words, fixedAnswers(), Object.keys(state.photos).sort(), Object.values(state.photos).map((p) => p.data.length)]);
     if (state.ask && state.askKey === key) return SLook();
     state.ask = null; state.inferred = {};
+    const my = ++reqSeq;
     render(`
       <h1>${Object.keys(state.photos).length ? "写真を見て、聞くことを選んでいます" : "答えから、聞くことを選んでいます"}</h1>
       ${A.scan(previews().slice(0, 3), "ask")}
       <p class="muted">このあと2〜3問だけ聞きます。20秒ほどかかります。</p>
-    `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
+    `, { back: () => { ++reqSeq; state.qIndex = nFixed - 1; S3(); } });
     A.startScan($screen);
     try {
       const res = await fetch(CFG.apiBase + "/ask", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(baseBody()) });
       const json = await res.json().catch(() => ({ ok: false, error: "bad_json" }));
+      if (my !== reqSeq) return; // a newer request or a back-step replaced this one
       if (!res.ok || !json.ok) throw new Error(json.error || res.status);
       const x = json.result;
       const seen = new Set();
@@ -303,6 +310,7 @@
       state.inferred = inferred; state.askKey = key; state.askFailed = false;
       SLook();
     } catch (e) {
+      if (my !== reqSeq) return;
       // Fall back to asking every question in the fixed order.
       state.askFailed = true; state.qIndex = nFixed; S3();
     }
@@ -366,11 +374,12 @@
   // ---------- S4 ----------
   async function S4() {
     screen = "S4";
+    const my = ++reqSeq;
     render(`
       <h1>${state.previous ? "確かめてきたことで、見立てを更新しています" : "答えと写真を合わせて、原因をまとめています"}</h1>
       ${A.gather(Object.keys(state.photos).length > 0)}
       <p class="muted">もうすぐ結果が出ます。30秒ほどかかります。</p>
-    `, { back: () => { state.qIndex = qList().length - 1; S3(); } });
+    `, { back: () => { ++reqSeq; state.qIndex = qList().length - 1; S3(); } });
     A.startScan($screen);
     const asked = qList();
     const answers = Object.fromEntries(asked.filter((q) => state.answers[q]).map((q) => [q, state.answers[q]]));
@@ -382,11 +391,13 @@
     try {
       const res = await fetch(CFG.apiBase + "/diagnose", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const json = await res.json().catch(() => ({ ok: false, error: "bad_json" }));
+      if (my !== reqSeq) return; // a newer request or a back-step replaced this one
       if (!res.ok || !json.ok) throw new Error(json.error || res.status);
       state.result = json.result; state.model = json.model; state.error = null;
       save();
       S5();
     } catch (e) {
+      if (my !== reqSeq) return;
       state.error = String(e.message || e);
       render(`
         <h1>うまくいきませんでした</h1>
@@ -433,19 +444,22 @@
 
   // Heat-shock stages from the CASBEE home renovation checklist (2015-07-29, item 1-(7), p.7).
   // Decided on the device from the answers; Claude is not asked.
+  // q4 (heating in the dressing room) as answered, or as Claude read it from the photos.
+  const q4Of = () => state.answers.q4 || (((state.inferred || {}).q4 || {}).value) || "";
   function heatShockStages() {
-    const a = state.answers, inf = state.inferred || {};
-    const q4 = a.q4 || (inf.q4 && inf.q4.value) || "";
+    const a = state.answers;
+    const q4 = q4Of();
     const q8 = a.q8 || "";
+    const portable = q4 === "持ち運びのヒーターを使う";
     const l2 = q4 === "浴室暖房乾燥機がある" || q4 === "持ち運びのヒーターを使う" ? "done" : q4 === "ない" ? "now" : "check";
     const l3 = l2 === "done" ? (q8 === "お風呂を直した（ユニットバス化など）" ? "check" : "now") : "next";
     const l4 = l3 === "now" || l3 === "check" ? "next" : "later";
     const label = { done: "済んでいる", now: "今ここ", next: "そのあと", later: "さらに先", check: "要確認" };
     return [
-      { n: 2, text: "脱衣所に暖房を置ける（置いてある、または置く場所とコンセントがある。浴室に暖房があるときも同じ）", s: l2 },
+      { n: 2, text: "脱衣所に暖房を置ける（置いてある、または置く場所とコンセントがある。浴室に暖房があるときも同じ）" + (portable ? "。今は持ち運びのヒーター。据え付けにできるかが、まず相談する案" : ""), s: l2, portable },
       { n: 3, text: "それに加えて、浴室と脱衣所の外に接する壁・床・天井を断熱する", s: l3 },
       { n: 4, text: "それに加えて、居間や寝室から浴室までの通り道とトイレも、断熱した区画の中に入れる", s: l4 },
-    ].map((x) => ({ ...x, label: label[x.s] }));
+    ].map((x) => ({ ...x, label: label[x.s] + (x.n === 2 && x.portable && x.s === "done" ? "（持ち運び）" : "") }));
   }
 
   // Public sources behind the numbers and the order (LOGIC.md ch.6). Shown behind ＋ on the result.
@@ -475,6 +489,8 @@
     const conf = (c) => `<span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span>`;
     const sizeTag = (p) => `<span class="tag">${A.size(p.work_size)}${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span>`;
     const todayRest = today.slice(1).map((a) => a.name);
+    const noWork = state.answers.q9 === "工事はしない（暮らし方の工夫だけ）";
+    const rentNote = state.ruleResult && state.ruleResult.note ? `<p class="small muted">${esc(state.ruleResult.note)}</p>` : "";
     const others = proposals.filter((p) => p !== first);
     const subsidy = (p) => `<p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`;
     const propCard = (p) => `<div class="card"><span class="rank">${p.rank}</span><b>${esc(p.name)}</b><p class="small">${sizeTag(p)}</p><p class="small">${esc(p.expected_change)}</p>${more(`<p class="small">${esc(p.description)}</p><p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>${subsidy(p)}`)}</div>`;
@@ -488,7 +504,7 @@
       <div class="tl">
         ${today.length ? `<div class="stop now"><span class="dot">今</span><div class="when">今日できる・工事なし</div><b>${esc(today[0].name)}</b>${todayRest.length ? `<p>ほかに、${todayRest.map(esc).join("／")}</p>` : ""}
           ${more(today.map((a) => `<p class="small"><b>${esc(a.name)}</b>　${esc(a.description)}</p>`).join(""), "くわしく")}</div>` : ""}
-        ${first ? `<div class="stop"><span class="dot">次</span><div class="when">工務店に相談・まずこれ</div><b>${esc(first.name)}</b><p>${sizeTag(first)}</p><p>${esc(first.expected_change)}</p>
+        ${first ? `<div class="stop"><span class="dot">次</span><div class="when">${noWork ? "工事をするなら、まずこれ（次に直すとき）" : "工務店に相談・まずこれ"}</div><b>${esc(first.name)}</b><p>${sizeTag(first)}</p><p>${esc(first.expected_change)}</p>${rentNote}
           ${more(`<p class="small">${esc(first.description)}</p><p class="small"><b>なぜこの順位か：</b>${esc(first.why_this_rank)}</p>${subsidy(first)}
           ${others.length ? `<p class="small"><b>ほかの案</b></p>${others.map(propCard).join("")}` : ""}
           ${bathStages ? `<p class="small"><b>お風呂の寒さ対策は、どの順番で進めるか</b></p>${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
@@ -572,14 +588,14 @@
   // a heater where one already is.
   function askBuilder(id) {
     if (id === "bath_heater") {
-      const q4 = state.answers.q4;
+      const q4 = q4Of();
       if (q4 === "持ち運びのヒーターを使う") return "今は持ち運びのヒーターです。脱衣所と浴室に、据え付けの暖房をつけられますか";
       if (q4 === "浴室暖房乾燥機がある") return "浴室には暖房があります。脱衣所にも暖房をつけられますか";
     }
     return ASK_BUILDER[id];
   }
   function builderQuestions() {
-    return r().proposals.filter((p) => ASK_BUILDER[p.id]).sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => askBuilder(p.id));
+    return [...r().proposals].sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => askBuilder(p.id) || `「${p.name}」は、この家でできますか`);
   }
 
   // Two sheets (2026-11-07): the short one is what gets handed over; the full one is there for the builder
@@ -599,7 +615,7 @@
     const L = ["家のカルテ（nukumori で作成。工務店に見せる相談シート）", ""];
     L.push("■ 聞きたいこと", ...builderQuestions().map((q, i) => `${i + 1}. ${q}`), "");
     L.push("■ 困っていること", `「${state.words}」（${x.place || state.place || "場所は未記入"}${state.time ? "・" + state.time : ""}）`, "");
-    L.push("■ 家のこと", `・${a.q0 || "住まいの種類：未回答"}／${a.q1 || "築年：未回答"}／工事は「${a.q9 || "未回答"}」まで`, ...asked, ...inferred, "");
+    L.push("■ 家のこと", `・${a.q0 || "住まいの種類：未回答"}／${a.q1 || "築年：未回答"}／工事の大きさ：${a.q9 || "未回答"}`, ...asked, ...inferred, "");
     if (confirmed.length) L.push(`■ ${fam}が家で確かめたこと`, ...confirmed, "");
     L.push("■ AI の見立て（目安）", `・原因：${x.causes.map((c) => `${c.rank}. ${c.name}`).join("　")}`, `・まず相談：${first ? first.name : "―"}`);
     const others = x.proposals.filter((p) => p !== first).map((p) => p.name);
@@ -644,10 +660,12 @@
   function S8() {
     screen = "S8";
     const { x, a, fam, asked, inferred, confirmed, first } = sheetHead();
-    const basics = [a.q0, a.q1, a.q9 ? `工事は「${a.q9}」まで` : ""].filter(Boolean).join("／");
     const answered = [...asked, ...inferred].map((l) => l.replace(/^・/, "").replace(/（写真からの AI の推定。要確認）$/, "（写真から）"));
     const checks = checksOf(x);
     const today = (x.today_actions || [])[0];
+    const qs = builderQuestions();
+    const noWork = a.q9 === "工事はしない（暮らし方の工夫だけ）";
+    const rentNote = state.ruleResult && state.ruleResult.note ? `<p class="small muted">${esc(state.ruleResult.note)}</p>` : "";
     const d = new Date(), stamp = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
     const plan = planHtml(false, true);
     render(`
@@ -658,14 +676,14 @@
       <div class="karte-pics ${plan ? "" : "one"}"><div class="house-wrap">${A.house({ mode: "result", marks: (x.causes || []).map((c) => ({ id: c.id, rank: c.rank })) })}</div>${plan}</div>
       <div class="card verdict">
         <div class="v"><span class="k">寒さの原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
-        ${first ? `<div class="v"><span class="k">工務店に相談</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span></div></div>` : ""}
+        ${first ? `<div class="v"><span class="k">${noWork ? "工事をするなら" : "工務店に相談"}</span><div><b>${esc(first.name)}</b><span class="tag">${A.size(first.work_size)}${esc(R.WORK_LABEL[first.work_size] || first.work_size)}</span>${rentNote}</div></div>` : ""}
         ${today ? `<div class="v"><span class="k">今日できること</span><div><b>${esc(today.name)}</b></div></div>` : ""}
       </div>
       <div class="card first"><span class="k">工務店に聞くこと（この家でできるか）</span>
-        <p class="small muted">上の見立てが、この家で本当にできるかは、現地を見た工務店にしか分かりません。その確かめに使う3つです。</p>
-        <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
+        <p class="small muted">${noWork ? "今は工事をしない方針なので、将来のために。" : ""}上の見立てが、この家で本当にできるかは、現地を見た工務店にしか分かりません。その確かめに使う${qs.length}つです。</p>
+        <ol class="asks">${qs.map((q) => `<li>${esc(q)}</li>`).join("")}</ol></div>
       <div class="card"><span class="k">この家</span>
-        <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事", a.q9 ? `「${a.q9}」まで` : ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>
+        <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事の大きさ", a.q9 || ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>
         ${confirmed.length ? `<p class="small"><b>${esc(fam)}が家で確かめた</b>　${confirmed.map((c) => esc(c.replace(/^・/, ""))).join("／")}</p>` : ""}
         ${checks.length ? `<p class="small"><b>現地で見てほしいこと</b>　${checks.map((c) => esc(c.what)).join("、")}</p>` : ""}</div>
       </div>

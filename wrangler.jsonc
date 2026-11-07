@@ -8,6 +8,8 @@
   // The PWA screens (web/) are served from the same Worker. Requests that do not
   // match a file (POST /diagnose) go to worker/index.js.
   "assets": { "directory": "./web" },
+  // Per-IP burst limit counted by the platform (8 calls a minute; one diagnosis is 2 calls).
+  "ratelimits": [{ "name": "RL", "namespace_id": "1001", "simple": { "limit": 8, "period": 60 } }],
   "vars": {
     // The published origin (screens are served by this Worker), GitHub Pages, and local dev. Not secret.
     "ALLOWED_ORIGINS": "https://nukumori-api.chaprec-transcribe.workers.dev,https://atsu53.github.io,http://localhost:8000,http://127.0.0.1:8000",

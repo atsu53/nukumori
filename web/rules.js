@@ -97,18 +97,20 @@ window.NUKUMORI_RULES = (() => {
     const bathEntry = placeId === "bath";
     const old = a.q1 === "1980年以前" || a.q1 === "1981〜1999年";
     const windowDone = a.q8 === "窓を交換した・内窓をつけた";
+    const windowGood = a.q2 === "室内側の枠が白いプラスチック（樹脂）か木で、ガラスは2枚以上" || a.q2 === "内窓（二重窓）がついている"; // 3.2: not a top cause
     const bathDone = a.q8 === "お風呂を直した（ユニットバス化など）";
     const rented = a.q0 === "マンション・アパート（分譲）" || a.q0 === "借りている家";
 
     // 3.1 age
     if (a.q1 === "1980年以前") add("wall_ceiling_insulation", "likely", "1980年以前の家は無断熱の可能性が高い（3.1）");
-    if (a.q1 === "1981〜1999年" && !windowDone) add("window_heat_loss", "likely", "昭和55年・平成4年基準のころの家は窓が単板ガラスの可能性が高い（3.1）");
-    if (a.q1 === "2000〜2015年" && !windowDone) add("window_heat_loss", "needs_check", "複層でも枠がアルミなら窓から逃げる（3.1）");
+    if (a.q1 === "1981〜1999年" && !windowDone && !windowGood) add("window_heat_loss", "likely", "昭和55年・平成4年基準のころの家は窓が単板ガラスの可能性が高い（3.1）");
+    if (a.q1 === "2000〜2015年" && !windowDone && !windowGood) add("window_heat_loss", "needs_check", "複層でも枠がアルミなら窓から逃げる（3.1）");
 
     // 3.2 window
     if (!windowDone) {
       if (a.q2 === "アルミの枠で、ガラスは1枚") { add("window_heat_loss", "almost_certain", "アルミ枠の1枚ガラス（3.2）", "q2");want("inner_window", true, "単板ガラスなら内窓を1位に（3.2）"); }
       else if (a.q2 === "アルミの枠で、ガラスは2枚（ペアガラス）") { add("window_heat_loss", "likely", "アルミ枠からの冷えと結露（3.2）"); want("inner_window", true); want("window_replace", true); }
+      else if (windowGood) { add("window_heat_loss", "needs_check", "樹脂か内窓の窓なので上位にしない（3.2）"); }
       else if (a.q2 === UNKNOWN || !a.q2) { if (causes.window_heat_loss) want("inner_window", false, "窓の種類は写真で判断（3.2）"); }
     } else {
       add("window_heat_loss", "needs_check", "窓は直してあるので上位にしない（Q8）");
@@ -123,7 +125,7 @@ window.NUKUMORI_RULES = (() => {
 
     // 3.4 floor and condensation
     if (a.q5 === "靴下でも足が冷たい") { add("floor_cold", old ? "likely" : "needs_check", "靴下でも足が冷たい（3.4）"); want("floor_insulation", true, old ? "築1999年以前なので順位を上げる（3.4）" : ""); }
-    if (a.q6 === "窓がびっしょり" || a.q6 === "窓の下のほうだけ") { if (!windowDone) add("window_heat_loss", causes.window_heat_loss ? causes.window_heat_loss.confidence : "likely", "結露は窓の性能の手がかり（3.4）"); }
+    if (a.q6 === "窓がびっしょり" || a.q6 === "窓の下のほうだけ") { if (!windowDone && !windowGood) add("window_heat_loss", causes.window_heat_loss ? causes.window_heat_loss.confidence : "likely", "結露は窓の性能の手がかり（3.4）"); }
     if (a.q6 === "壁や押入れにも") { add("moisture", "likely", "壁や押入れの結露は換気・湿気の問題（3.4）"); want("ventilation", true); }
 
     // 3.5 heating
@@ -165,7 +167,7 @@ window.NUKUMORI_RULES = (() => {
       heat_shock_level: heatShock ? "strong" : (bathEntry ? "normal" : "none"),
       home_type: a.q0 || "",
       work_tolerance: a.q9 || "",
-      note: rented ? "分譲・賃貸：窓・外壁の工事は管理組合や大家の了解が要る。改修案は暖房・内窓・換気に絞った" : "",
+      note: rented ? "分譲・賃貸：窓や外壁の工事は、管理組合や大家さんの了解が先に要ります" : "",
     };
   }
 
