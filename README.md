@@ -80,7 +80,7 @@
 ## 主な出典
 
 - 国土交通省住宅局「最近の省エネ施策について」（令和6年度）：住宅ストックのうち省エネ基準に適合 約18％、無断熱 約24％（令和4年度時点） https://www.j-reform.com/web-seminars/pdf/2024sym-1.pdf
-- 消費者庁「冬季に多発する高齢者の入浴中の事故に御注意ください！」 https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_042
+- 消費者庁「みんなで知ろう、防ごう、高齢者の事故」（入浴中の事故の項） https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/
 - 「CASBEE すまい改修チェックリスト」（2015年7月29日発行）ヒートショックの項目 https://www.jsbc.or.jp/research-study/casbee/tools/files/kaishu/CASBEE_Sumai_Checklist.pdf
 - 国土交通省「断熱改修等による居住者の健康への影響調査 中間報告（第3回）」（2019年1月） https://www.mlit.go.jp/report/press/house07_hh_000198.html
 - 日本サッシ協会「建具とガラスの組み合わせによる開口部の熱貫流率」（2025年7月改訂） https://www.jsma.or.jp/Portals/0/images/useful/technology/25-0701.pdf

@@ -421,7 +421,7 @@
   // Public sources behind the numbers and the order (LOGIC.md ch.6). Shown behind ＋ on the result.
   const SOURCES = `<ul class="small src">
       <li>住宅ストックの断熱性能（省エネ基準に適合 約18％、無断熱 約24％。令和4年度時点）：国土交通省住宅局「最近の省エネ施策について」（令和6年度）<a href="https://www.j-reform.com/web-seminars/pdf/2024sym-1.pdf" target="_blank" rel="noopener">資料</a></li>
-      <li>入浴中の事故と、湯の温度・時間の目安：消費者庁「冬季に多発する高齢者の入浴中の事故に御注意ください！」<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_042" target="_blank" rel="noopener">資料</a></li>
+      <li>入浴中の事故と、湯の温度・時間の目安：消費者庁「みんなで知ろう、防ごう、高齢者の事故」（入浴中の事故の項）<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">資料</a></li>
       <li>お風呂の寒さ対策の段階：「CASBEE すまい改修チェックリスト」（2015年7月29日発行）<a href="https://www.jsbc.or.jp/research-study/casbee/tools/files/kaishu/CASBEE_Sumai_Checklist.pdf" target="_blank" rel="noopener">資料</a></li>
       <li>断熱改修と健康：国土交通省「断熱改修等による居住者の健康への影響調査 中間報告（第3回）」（2019年1月）<a href="https://www.mlit.go.jp/report/press/house07_hh_000198.html" target="_blank" rel="noopener">資料</a></li>
       <li>窓の枠とガラスの組み合わせごとの断熱性能：日本サッシ協会「建具とガラスの組み合わせによる開口部の熱貫流率」（2025年7月改訂）<a href="https://www.jsma.or.jp/Portals/0/images/useful/technology/25-0701.pdf" target="_blank" rel="noopener">資料</a></li>
