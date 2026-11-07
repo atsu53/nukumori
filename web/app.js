@@ -35,7 +35,26 @@
     if ($bar) { $bar.hidden = bar === null; $bar.firstElementChild.style.width = `${Math.round((bar || 0) * 100)}%`; }
     $screen.classList.remove("enter"); void $screen.offsetWidth; $screen.classList.add("enter");
     window.scrollTo(0, 0);
+    try { sessionStorage.setItem("nk_screen", screen); } catch {}
   }
+  // If the page was reloaded in the middle of the flow (a crash shows as a silent reload on phones), the cover
+  // says so in one small line, with the last error if one was caught, so it can be copied and reported.
+  const DIAG_NAMES = { S2: "写真", S1: "一言", S3: "質問", SAsk: "写真を見て、聞くことを選んでいます", SLook: "見えたこと", S4: "原因をまとめています", S5: "結果", SConfirm: "確かめてきたこと", S8: "家のカルテ" };
+  function bootNote() {
+    let out = "";
+    try {
+      const prev = sessionStorage.getItem("nk_screen");
+      const nav = (performance.getEntriesByType("navigation")[0] || {}).type || "";
+      const err = localStorage.getItem("nk_err") || "";
+      if (prev && prev !== "S0") out = `前回は「${DIAG_NAMES[prev] || prev}」の画面のあとで読み直されました（${nav || "種類不明"}）`;
+      if (err) out += `${out ? "／" : ""}直前のエラー：${err}`;
+      sessionStorage.removeItem("nk_screen");
+    } catch {}
+    return out;
+  }
+  const saveErr = (m) => { try { localStorage.setItem("nk_err", `${String(m).slice(0, 160)} @${screen} ${new Date().toISOString().slice(11, 19)}`); } catch {} };
+  window.addEventListener("error", (e) => saveErr(e.message || "error"));
+  window.addEventListener("unhandledrejection", (e) => saveErr((e.reason && e.reason.message) || e.reason || "rejection"));
   const on = (sel, ev, fn) => $screen.querySelectorAll(sel).forEach((el) => el.addEventListener(ev, fn));
   const isSelf = () => state.who === "self";
   // Long text folds: the first sentence stays, the rest opens on くわしく. A sentence with a safety point is
@@ -67,6 +86,7 @@
     let last = null;
     try { last = JSON.parse(localStorage.getItem(STORE) || "null"); } catch {}
     const lead = "建築士の見方を教わった Claude が、写真と一言から、寒さの原因とまず相談したい直し方を見立てます。";
+    const note = bootNote();
     const steps = [["写真を撮る", "photo"], ["一言と質問", "words"], ["原因と直し方", "result"]];
     // Whose house is the first tap (2026-11-07 evening: the separate "どの家を診ますか" screen is gone).
     const buttons = `<div class="choices tiles start">
@@ -82,7 +102,9 @@
       ${buttons}
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       <div class="society">国の推計では、今の断熱の基準を満たす家は約18％、断熱がまったくない家は約24％です（令和4年度時点）。</div>
+      ${note ? `<p class="small muted center"><span class="diag">${esc(note)}</span> <button class="link small" id="diagCopy">コピー</button></p>` : ""}
     `, { foot: true });
+    on("#diagCopy", "click", async () => { try { await navigator.clipboard.writeText(`${note}／${navigator.userAgent}`); localStorage.removeItem("nk_err"); $screen.querySelector("#diagCopy").textContent = "コピーしました"; } catch {} });
     on("[data-who]", "click", (e) => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {}, who: e.currentTarget.dataset.who }); S2(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
     // The sample house (2026-11-07 night): the author's parents' house, five photos the family agreed to show,
@@ -136,7 +158,15 @@
       const dataUrl = c.toDataURL("image/jpeg", CFG.photoQuality); // re-encoded: no EXIF, no location
       if (ruler) drawRuler(g, w, h);
       const sent = ruler ? c.toDataURL("image/jpeg", CFG.photoQuality) : dataUrl;
-      return { media_type: "image/jpeg", data: sent.split(",")[1], preview: dataUrl, w, h };
+      // The screens show a smaller copy (phones ran out of memory with five full-size previews, 2026-11-07 night).
+      const t = document.createElement("canvas");
+      const ts = Math.min(1, 800 / Math.max(w, h));
+      t.width = Math.round(w * ts); t.height = Math.round(h * ts);
+      if (ruler) { const img2 = await new Promise((ok, ng) => { const i = new Image(); i.onload = () => ok(i); i.onerror = ng; i.src = dataUrl; }); t.getContext("2d").drawImage(img2, 0, 0, t.width, t.height); }
+      else t.getContext("2d").drawImage(c, 0, 0, t.width, t.height);
+      const preview = t.toDataURL("image/jpeg", 0.8);
+      c.width = c.height = 0; t.width = t.height = 0;
+      return { media_type: "image/jpeg", data: sent.split(",")[1], preview, w, h };
     } finally { URL.revokeObjectURL(url); }
   }
   // The copy of the floor plan sent to Claude carries a 0-1000 ruler; the family only sees the clean photo.
@@ -254,7 +284,7 @@
     state.ask = null; state.inferred = {};
     render(`
       <h1>${Object.keys(state.photos).length ? "写真を見て、聞くことを選んでいます" : "答えから、聞くことを選んでいます"}</h1>
-      ${A.scan(previews(), "ask")}
+      ${A.scan(previews().slice(0, 3), "ask")}
       <p class="muted">このあと2〜3問だけ聞きます。20秒ほどかかります。</p>
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
     A.startScan($screen);
@@ -662,11 +692,10 @@
     let hadController = !!navigator.serviceWorker.controller;
     navigator.serviceWorker.addEventListener("controllerchange", () => {
       if (!hadController) { hadController = true; return; } // first install, nothing to refresh
-      if (screen === "S0") return location.reload();
       if (document.querySelector(".update-bar")) return;
       const bar = document.createElement("div");
       bar.className = "update-bar";
-      bar.innerHTML = `新しい版があります。<button class="link small" type="button">表紙に戻って更新する</button>`;
+      bar.innerHTML = `新しい版があります。<button class="link small" type="button">${screen === "S0" ? "更新する" : "表紙に戻って更新する"}</button>`;
       bar.querySelector("button").addEventListener("click", () => location.reload());
       document.body.prepend(bar);
     });

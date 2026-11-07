@@ -275,3 +275,4 @@ details.sec[open]:last-of-type > summary { border-bottom: 0; }
 .paper .karte-pics { margin: 8px 0 10px; }
 .update-bar { position: sticky; top: 0; z-index: 4; background: #fff4e5; border-bottom: 1px solid #f0d4b0; padding: 8px 16px; font-size: 14px; text-align: center; }
 .update-bar .link { padding: 0 4px; }
+.diag { font-size: 12px; }
