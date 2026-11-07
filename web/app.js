@@ -19,7 +19,7 @@
     previous: null, confirmed: null, // re-diagnosis after the family checked things at the house
     result: null, model: "", ruleResult: null, error: null,
   };
-  const FRESH = { words: "", place: "", placeId: "", time: "", photos: {}, answers: {}, qIndex: 0, ask: null, askKey: "", askFailed: false, inferred: {}, sent: null, previous: null, confirmed: null, result: null, error: null };
+  const FRESH = { words: "", place: "", placeId: "", time: "", photos: {}, answers: {}, qIndex: 0, ask: null, askKey: "", askFailed: false, inferred: {}, sent: null, previous: null, confirmed: null, result: null, error: null, sample: false };
   let screen = "S0";
   let backTarget = null;
 
@@ -73,7 +73,8 @@
         <button class="choice tile" data-who="family">${A.who("family")}<span>離れて暮らす<br>家族の家を診る</span></button>
         <button class="choice tile" data-who="self">${A.who("self")}<span>自分の家を診る</span></button>
       </div>
-      ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}`;
+      ${last ? `<button class="btn secondary" id="last">前回の結果を見る（${esc(last.savedAt || "")}）</button>` : ""}
+      <p class="center"><button class="link small" id="sample">例の家で試す（築50年ほどの実家の写真5枚で）</button></p>`;
     render(`
       <div class="hero">${A.house({ mode: "cover" })}</div>
       <h1 class="title">「お風呂が寒い」から、Claude が家の寒さを診る</h1>
@@ -84,6 +85,20 @@
     `, { foot: true });
     on("[data-who]", "click", (e) => { Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {}, who: e.currentTarget.dataset.who }); S2(); });
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
+    // The sample house (2026-11-07 night): the author's parents' house, five photos the family agreed to show,
+    // nothing that tells where it is. Judges and first-time visitors can reach the end in a minute.
+    on("#sample", "click", async (e) => {
+      const b = e.currentTarget; b.textContent = "写真を読み込んでいます…"; b.disabled = true;
+      Object.assign(state, FRESH, { photos: {}, answers: {}, inferred: {}, who: "family", words: "お風呂場がさむいんだべさ", sample: true });
+      for (const s of slots()) {
+        try {
+          const res = await fetch(`sample/s${s.key}.jpg`, { cache: "force-cache" });
+          const f = new File([await res.blob()], `s${s.key}.jpg`, { type: "image/jpeg" });
+          state.photos[s.key] = { label: s.label, ...(await shrink(f, s.key === 5)) };
+        } catch {}
+      }
+      S2();
+    });
   }
   const SWho = S0; // the choice lives on the cover now
 
@@ -150,6 +165,7 @@
     render(`
       <h1>まず、家の写真を入れてください</h1>
       <p class="muted">${isSelf() ? "撮るか、写真から選びます。" : "撮るか、送ってもらった写真を選びます。"}写真を見てから、聞くことを決めます。なくても進めます。</p>
+      ${state.sample ? `<div class="notice small">築50年ほどの実家の写真を入れてあります（家族の了解を得て載せています。場所が分かるものは外しました）。そのまま「次へ」で進めます。</div>` : ""}
       <label class="btn pick-all">まとめて選ぶ（5枚まで）<input type="file" accept="image/*" multiple id="pickAll"><span class="small">枠の順に入ります。違っていたら、その枠の「選ぶ」で入れ替えられます</span></label>
       <div class="photo-slots">
         ${list.map((s) => {
@@ -402,6 +418,15 @@
     ].map((x) => ({ ...x, label: label[x.s] }));
   }
 
+  // Public sources behind the numbers and the order (LOGIC.md ch.6). Shown behind ＋ on the result.
+  const SOURCES = `<ul class="small src">
+      <li>住宅ストックの断熱性能（省エネ基準に適合 約18％、無断熱 約24％。令和4年度時点）：国土交通省住宅局「最近の省エネ施策について」（令和6年度）<a href="https://www.j-reform.com/web-seminars/pdf/2024sym-1.pdf" target="_blank" rel="noopener">資料</a></li>
+      <li>入浴中の事故と、湯の温度・時間の目安：消費者庁「冬季に多発する高齢者の入浴中の事故に御注意ください！」<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_042" target="_blank" rel="noopener">資料</a></li>
+      <li>お風呂の寒さ対策の段階：「CASBEE すまい改修チェックリスト」（2015年7月29日発行）<a href="https://www.jsbc.or.jp/research-study/casbee/tools/files/kaishu/CASBEE_Sumai_Checklist.pdf" target="_blank" rel="noopener">資料</a></li>
+      <li>断熱改修と健康：国土交通省「断熱改修等による居住者の健康への影響調査 中間報告（第3回）」（2019年1月）<a href="https://www.mlit.go.jp/report/press/house07_hh_000198.html" target="_blank" rel="noopener">資料</a></li>
+      <li>窓の枠とガラスの組み合わせごとの断熱性能：日本サッシ協会「建具とガラスの組み合わせによる開口部の熱貫流率」（2025年7月改訂）<a href="https://www.jsma.or.jp/Portals/0/images/useful/technology/25-0701.pdf" target="_blank" rel="noopener">資料</a></li>
+      <li>補助制度：住宅省エネ2026キャンペーン（先進的窓リノベ2026事業など）。対象・金額・期限は年度で変わるので、窓口で最新を確かめてください。このアプリは金額を出しません</li>
+    </ul>`;
   // One line on bath safety (Consumer Affairs Agency), always visible when the bath is the place.
   const BATH_NOTICE = `<div class="notice small"><b>お風呂の寒さは、冬の事故につながります。</b>入浴前に脱衣所と浴室を暖める。湯は41度以下、つかるのは10分まで。浴槽から急に立ち上がらない（<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁の注意喚起</a>より）。気になる症状があれば医師に相談してください。</div>`;
 
@@ -444,9 +469,10 @@
           ${more(`<div class="grid2">${checks.map((c, i) => `<div class="card chk"><span class="rank">${i + 1}</span><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}</div>`).join("")}</div>`, "確かめ方")}</div>` : ""}
         ${isSelf() || !x.message_to_parent ? "" : `<div class="stop"><span class="dot">声</span><div class="when">家族への一言</div><p class="say">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
       </div>
-      ${sec("原因の見立てと、なぜそう見たか", causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}<p class="small">${esc(c.reason)}</p></div>`).join(""))}
+      ${sec("原因の見立てと、なぜそう見たか", causes.map((c) => { const rc = ((state.ruleResult && state.ruleResult.causes) || []).find((k) => k.id === c.id); return `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}<p class="small">${esc(c.reason)}</p>${rc ? `<p class="small muted"><span class="tag">建築士のルール</span>${esc(rc.why)}</p>` : ""}</div>`; }).join("") + `<p class="small muted">「建築士のルール」は、一級建築士（作者）への聞き取りから作った判定の決まりで、Claude はそれを出発点に写真と答えを読みます。かっこの番号は設計資料の節です。</p>`)}
       ${planHtml() ? sec("間取り図で見ると", planHtml(false)) : ""}
       ${x.photo_findings.length ? sec(`写真で見つけたこと（${x.photo_findings.length}枚）`, x.photo_findings.map(findingCard).join("")) : ""}
+      ${sec("数字と判断の出典", SOURCES)}
       ${bath ? BATH_NOTICE : ""}
       ${again ? `<button class="link small" id="confirm">さらに確かめたことを足して、もう一度更新する</button>` : ""}
       <div class="cta-bar ${again ? "one" : ""}">${again ? "" : `<button class="btn secondary" id="confirm2">${isSelf() ? "確かめて、見立てを更新" : "家で確かめて、見立てを更新"}</button>`}<button class="btn" id="next">家のカルテへ</button></div>

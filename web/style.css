@@ -260,3 +260,7 @@ details.sec[open]:last-of-type > summary { border-bottom: 0; }
 .kv b { font-weight: 600; word-break: auto-phrase; }
 .title { margin-top: 2px; }
 .steps { margin: 18px 0 10px; }
+
+.src { padding-left: 18px; margin: 6px 0 10px; color: var(--muted); }
+.src li { margin: 6px 0; }
+.src a { color: var(--accent); margin-left: 4px; }
