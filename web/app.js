@@ -606,7 +606,9 @@
       <button class="btn" id="copySheet">このカルテをコピー</button>
       ${more(`<div class="sheet">${esc(sheetFull())}</div><button class="btn secondary" id="copyFull">詳しい版をコピー</button>`, "詳しい版（写真の所見・理由・見積の分け方）")}
       <p class="small muted center">この端末に保存しました。表紙の「前回の結果を見る」から戻れます。写真は保存しません。</p>
+      <p class="center"><button class="link small" id="home">最初の画面に戻る</button></p>
     `, { back: S5, foot: true });
+    on("#home", "click", S0);
     on("#copySheet", "click", () => copy(sheetShort(), "#copySheet"));
     on("#copyFull", "click", () => copy(sheetFull(), "#copyFull"));
   }
