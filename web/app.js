@@ -305,15 +305,14 @@
     const a = state.ask;
     const inf = a.inferred;
     const notes = a.photo_notes || [];
-    const next = `<button class="btn next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button>`;
+    const next = `<div class="cta-bar one"><button class="btn next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button></div>`;
     render(`
       <h1>写真と答えから、見えたこと</h1>
       <div class="card"><p class="lead">${esc(a.first_look)}</p></div>
-      ${next}
       ${planHtml() ? `<h3>間取り図に、寒さの道筋を重ねました</h3>${planHtml()}` : ""}
       ${notes.length ? `<h3>写真ごとに</h3>${notes.map((n) => `<div class="shot">${photoThumb(n.photo)}<div><span class="tag">写真${n.photo}：${esc(photoLabel(n.photo))}</span><p class="small"><b>見えた</b>　${esc(seenOf(n))}</p>${unknownOf(n) ? `<p class="small muted"><b>分からない</b>　${esc(unknownOf(n))}</p>` : ""}</div></div>`).join("")}` : ""}
       ${inf.length ? `<h3>写真から、すでに分かったこと（聞かずに済ませます）</h3>${inf.map((i) => `<div class="card small"><b>${esc(shortQ(i.id))}</b>：${esc(i.value)}${more(`<p class="muted">${esc(i.basis)}</p>`, "なぜそう見たか")}</div>`).join("")}` : ""}
-      ${notes.length || inf.length ? next : ""}
+      ${next}
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
     on(".next", "click", () => { state.qIndex = nFixed; S3(); });
   }
@@ -369,7 +368,7 @@
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
-    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">番号は下の原因の順位です（模式図）。</p>`;
+    return `<div class="house-wrap">${A.house({ mode: "result", marks })}</div><p class="house-cap">${(x.causes || []).map((c) => `<span class="item"><span class="rank">${c.rank}</span>${esc(c.name)}</span>`).join(" ")}</p>`;
   }
 
   // A re-diagnosis lists what changed, and also an important point that stayed the same (before equals
@@ -418,46 +417,41 @@
     const bathStages = state.ruleResult && state.ruleResult.heat_shock_level !== "none" ? heatShockStages() : null;
     const conf = (c) => `<span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span>`;
     const sizeTag = (p) => `<span class="tag">${A.size(p.work_size)}${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span>`;
+    const todayRest = today.slice(1).map((a) => a.name);
+    const others = proposals.filter((p) => p !== first);
+    const subsidy = (p) => `<p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`;
+    const propCard = (p) => `<div class="card"><span class="rank">${p.rank}</span><b>${esc(p.name)}</b><p class="small">${sizeTag(p)}</p><p class="small">${esc(p.expected_change)}</p>${more(`<p class="small">${esc(p.description)}</p><p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>${subsidy(p)}`)}</div>`;
+    const sec = (title, inner) => `<details class="sec"><summary>${esc(title)}</summary>${inner}</details>`;
+    // The result as the architect's order on one vertical line (2026-11-07 night, pattern C): the house first,
+    // then 今日 → 工務店 → 家で確かめる → 家族への一言. Everything else opens with ＋ (pattern B).
     render(`
       ${again ? changesHtml(x.changes) : ""}
-      <h1>${esc(place)}が寒い、いちばんの原因は</h1>
-      <div class="card verdict">
-        ${causes[0] ? `<div class="v"><span class="k">原因</span><div><b>${esc(causes[0].name)}</b>${conf(causes[0])}</div></div>` : ""}
-        ${first ? `<div class="v"><span class="k">工務店に相談</span><div><b>${esc(first.name)}</b>${sizeTag(first)}</div></div>` : ""}
-        ${today[0] ? `<div class="v"><span class="k">今日できる</span><div><b>${esc(today[0].name)}</b></div></div>` : ""}
-      </div>
-      <div class="jump"><button data-to="sec-causes">原因</button>${today.length ? `<button data-to="sec-today">今日できる</button>` : ""}<button data-to="sec-fix">工務店に相談</button><button data-to="sec-checks">確かめる</button></div>
+      <h1>${esc(place)}が寒い、いちばんの原因は<br><span class="accent">${causes[0] ? esc(causes[0].name) : "まだ絞れていません"}</span></h1>
       ${causeHouse(x)}
-      <h2 id="sec-causes">原因の見立て</h2>
-      ${causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}${more(`<p class="small">${esc(c.reason)}</p>`, "なぜそう見たか")}</div>`).join("")}
-      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml(true)}` : ""}
-      ${x.photo_findings.length ? more(x.photo_findings.map(findingCard).join(""), `写真で見つけたこと（${x.photo_findings.length}枚）`) : ""}
-      ${today.length ? `<section class="today" id="sec-today"><h2>今日からできること<span class="tag">工事なし</span></h2>
-      ${today.map((a, i) => `<div class="act"><span class="rank">${i + 1}</span><div><b>${esc(a.name)}</b>${fold(a.description)}</div></div>`).join("")}</section>` : ""}
-      <h2 id="sec-fix">工務店に相談するなら、まずこれ</h2>
-      ${proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談</span>` : ""}
-        <p class="small">${sizeTag(p)}</p>
-        ${p.first_choice ? `<p class="small">${esc(p.expected_change)}</p>` : ""}
-        ${more(`<p class="small">${esc(p.description)}</p>
-        ${p.first_choice ? "" : `<p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>`}
-        <p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>
-        <p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`)}</div>`).join("")}
-      ${bathStages ? more(`${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
-      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>`, "お風呂の寒さ対策は、どの順番で進めるか") : ""}
-      ${x.rule_overrides && x.rule_overrides.length ? `<details class="small"><summary class="muted">この家に合わせて、ふつうの判断を変えたところ</summary><ul>${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul></details>` : ""}
-      <h2 id="sec-checks">${isSelf() ? "家で確かめてほしいこと" : "次に家を見るとき、確かめてほしいこと"}</h2>
-      ${checks.map((c) => `<div class="card chk"><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}</div>`).join("")}
-      ${isSelf() || !x.message_to_parent ? "" : `<h2>家族への一言</h2>
-      <div class="card">${A.care()}<p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
+      <div class="tl">
+        ${today.length ? `<div class="stop now"><span class="dot">今</span><div class="when">今日できる・工事なし</div><b>${esc(today[0].name)}</b>${todayRest.length ? `<p>ほかに、${todayRest.map(esc).join("／")}</p>` : ""}
+          ${more(today.map((a) => `<p class="small"><b>${esc(a.name)}</b>　${esc(a.description)}</p>`).join(""), "くわしく")}</div>` : ""}
+        ${first ? `<div class="stop"><span class="dot">次</span><div class="when">工務店に相談・まずこれ</div><b>${esc(first.name)}</b><p>${sizeTag(first)}</p><p>${esc(first.expected_change)}</p>
+          ${more(`<p class="small">${esc(first.description)}</p><p class="small"><b>なぜこの順位か：</b>${esc(first.why_this_rank)}</p>${subsidy(first)}
+          ${others.length ? `<p class="small"><b>ほかの案</b></p>${others.map(propCard).join("")}` : ""}
+          ${bathStages ? `<p class="small"><b>お風呂の寒さ対策は、どの順番で進めるか</b></p>${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
+          <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>` : ""}
+          ${x.rule_overrides && x.rule_overrides.length ? `<p class="small"><b>この家に合わせて、ふつうの判断を変えたところ</b></p><ul class="small">${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul>` : ""}
+          <p class="small muted">金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、窓口で最新を確かめてください。</p>`, "ほかの案と、なぜこの順か")}</div>` : ""}
+        ${checks.length ? `<div class="stop"><span class="dot">家</span><div class="when">${isSelf() ? "家で確かめる" : "次に家を見るとき、確かめる"}</div><b>${checks.map((c) => esc(c.what)).join("・")}</b><p>確かめた答えで、見立てが更新されます</p>
+          ${more(`<div class="grid2">${checks.map((c, i) => `<div class="card chk"><span class="rank">${i + 1}</span><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}</div>`).join("")}</div>`, "確かめ方")}</div>` : ""}
+        ${isSelf() || !x.message_to_parent ? "" : `<div class="stop"><span class="dot">声</span><div class="when">家族への一言</div><p class="say">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
+      </div>
+      ${sec("原因の見立てと、なぜそう見たか", causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}<p class="small">${esc(c.reason)}</p></div>`).join(""))}
+      ${planHtml() ? sec("間取り図で見ると", planHtml(false)) : ""}
+      ${x.photo_findings.length ? sec(`写真で見つけたこと（${x.photo_findings.length}枚）`, x.photo_findings.map(findingCard).join("")) : ""}
       ${bath ? BATH_NOTICE : ""}
-      <p class="small muted">金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、窓口で最新を確かめてください。</p>
       ${again ? `<button class="link small" id="confirm">さらに確かめたことを足して、もう一度更新する</button>` : ""}
       <div class="cta-bar ${again ? "one" : ""}">${again ? "" : `<button class="btn secondary" id="confirm2">${isSelf() ? "確かめて、見立てを更新" : "家で確かめて、見立てを更新"}</button>`}<button class="btn" id="next">家のカルテへ</button></div>
     `, { back: S0 });
     on("#copyMsg", "click", () => copy(x.message_to_parent, "#copyMsg"));
     on("#confirm, #confirm2", "click", SConfirm);
     on("#next", "click", S8);
-    on(".jump button", "click", (e) => { const el = $screen.querySelector("#" + e.currentTarget.dataset.to); if (el) el.scrollIntoView({ behavior: "smooth", block: "start" }); });
   }
   const S6 = S5, S7 = S5; // the three result screens became one (2026-11-07)
 

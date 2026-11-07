@@ -215,13 +215,37 @@ summary { -webkit-tap-highlight-color: transparent; }
 .verdict .v .rank { min-width: 22px; height: 22px; line-height: 22px; font-size: 12px; margin-right: 6px; }
 .verdict .v p.small { margin: 2px 0; }
 
-/* 2026-11-07 night: what can be done today stands on its own, before the works (the first rung of the order). */
-.today { background: #fff4e5; border: 2px solid var(--accent); border-radius: var(--radius); padding: 10px 14px 4px; margin: 18px 0; }
-.today h2 { margin: 2px 0 6px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-.today h2 .tag { font-weight: 600; }
-.today .act { display: grid; grid-template-columns: 26px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid #f0d4b0; }
-.today .act:first-of-type { border-top: 0; }
-.today .act .rank { display: inline-block; min-width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; margin-top: 1px; }
-.today .act b { display: block; font-size: 16px; line-height: 1.4; }
-.today .act p { margin: 2px 0; }
-.today .act .more { margin: 2px 0 0; }
+
+/* 2026-11-07 night, pattern C+B: the result as one vertical line, the rest behind ＋. Cards lose their border
+   and are set apart by space and the paper colour; the bar fades the text out above it (from the reference apps). */
+.card, .house-wrap, .screen > details.more { border-color: transparent; }
+.card.first { border-color: var(--accent); }
+h1 .accent { color: var(--accent); }
+.house-cap .rank { display: inline-block; min-width: 20px; height: 20px; line-height: 20px; text-align: center; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; margin: 0 4px 0 0; font-size: 12px; }
+.tl { position: relative; margin: 22px 0 4px; padding-left: 44px; }
+.tl::before { content: ""; position: absolute; left: 15px; top: 14px; bottom: 14px; width: 2px; background: var(--line); }
+.stop { position: relative; margin: 0 0 26px; }
+.stop .dot { position: absolute; left: -44px; top: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; text-align: center; line-height: 32px; font-size: 14px; border: 3px solid var(--bg); box-sizing: content-box; margin: -3px 0 0 -3px; }
+.stop.now .dot { background: #b4321e; }
+.stop .when { font-size: 12px; color: var(--accent); font-weight: 700; letter-spacing: .06em; margin: 6px 0 2px; }
+.stop > b { display: block; font-size: 18px; line-height: 1.4; word-break: auto-phrase; }
+.stop > p { margin: 4px 0 0; font-size: 14px; color: var(--muted); }
+.stop > p .tag { margin: 0; }
+.stop p.say { color: var(--ink); font-size: 16px; line-height: 1.6; }
+.stop > .more { margin-top: 4px; }
+.stop .card { margin: 8px 0; }
+details.sec { margin: 0; }
+details.sec > summary { list-style: none; cursor: pointer; font-size: 17px; font-weight: 700; padding: 14px 4px; border-top: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+details.sec > summary::after { content: "＋"; color: var(--accent); font-weight: 400; font-size: 20px; }
+details.sec[open] > summary::after { content: "−"; }
+details.sec > summary::-webkit-details-marker { display: none; }
+details.sec > :last-child { margin-bottom: 16px; }
+details.sec + .notice, details.sec + .cta-bar, details.sec + button { margin-top: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.grid2 .card { margin: 0; padding: 10px 12px; }
+.grid2 .card .rank { min-width: 22px; height: 22px; line-height: 22px; font-size: 12px; margin-right: 6px; }
+.grid2 .card b { display: block; font-size: 15px; margin-top: 4px; }
+.cta-bar::before { content: ""; position: absolute; left: 0; right: 0; top: -30px; height: 30px; background: linear-gradient(to bottom, rgba(246,239,230,0), rgba(246,239,230,.96)); pointer-events: none; }
+.house-cap .item { display: inline-block; white-space: nowrap; margin: 0 10px 2px 0; }
+details.sec:last-of-type > summary { border-bottom: 1px solid var(--line); }
+details.sec[open]:last-of-type > summary { border-bottom: 0; }

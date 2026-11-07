@@ -35,7 +35,7 @@ window.NUKUMORI_RULES = (() => {
     q8: { text: "窓やお風呂を、直したことはありますか", note: "建てたあとに手を入れたかを知りたい質問です", options: ["窓を交換した・内窓をつけた", "お風呂を直した（ユニットバス化など）", "どちらも直していない", UNKNOWN] },
     q3: { text: "お風呂は、どんなお風呂ですか", note: "", options: ["タイル張りの昔ながらの浴室", "ユニットバス（古い）", "ユニットバス（比較的新しい）", UNKNOWN] },
     q4: { text: "脱衣所やお風呂に、暖房はありますか", note: "", options: ["ない", "持ち運びのヒーターを使う", "浴室暖房乾燥機がある", UNKNOWN] },
-    q2: { text: "寒い部屋の窓は、どれに近いですか", note: "分からなければ写真で判断します", options: ["アルミ枠で1枚ガラス", "アルミ枠で2枚ガラス（複層）", "樹脂や木の枠で2枚ガラス", "内窓がついている", UNKNOWN] },
+    q2: { text: "寒い部屋の窓は、どれに近いですか", note: "分からなければ写真で判断します", options: ["アルミの枠で、ガラスは1枚", "アルミの枠で、ガラスは2枚（ペアガラス）", "室内側の枠が白いプラスチック（樹脂）か木で、ガラスは2枚以上", "内窓（二重窓）がついている", UNKNOWN] },
     q5: { text: "冬、床の冷たさはどうですか", note: "", options: ["靴下でも足が冷たい", "スリッパなら平気", "気にならない", UNKNOWN] },
     q6: { text: "冬の朝、窓や壁に結露しますか", note: "", options: ["窓がびっしょり", "窓の下のほうだけ", "壁や押入れにも", "ほとんどしない", UNKNOWN] },
     q7: { text: "冬、主に使っている暖房はどれですか", note: "煙突のないストーブは、水蒸気が出て結露の原因にもなります", options: ["エアコン", "石油ファンヒーターや開放型ストーブ（排気筒なし）", "FF式・煙突つきのストーブ", "こたつ・電気ストーブ", "床暖房", UNKNOWN] },
@@ -107,8 +107,8 @@ window.NUKUMORI_RULES = (() => {
 
     // 3.2 window
     if (!windowDone) {
-      if (a.q2 === "アルミ枠で1枚ガラス") { add("window_heat_loss", "almost_certain", "アルミ枠の1枚ガラス（3.2）", "q2");want("inner_window", true, "単板ガラスなら内窓を1位に（3.2）"); }
-      else if (a.q2 === "アルミ枠で2枚ガラス（複層）") { add("window_heat_loss", "likely", "アルミ枠からの冷えと結露（3.2）"); want("inner_window", true); want("window_replace", true); }
+      if (a.q2 === "アルミの枠で、ガラスは1枚") { add("window_heat_loss", "almost_certain", "アルミ枠の1枚ガラス（3.2）", "q2");want("inner_window", true, "単板ガラスなら内窓を1位に（3.2）"); }
+      else if (a.q2 === "アルミの枠で、ガラスは2枚（ペアガラス）") { add("window_heat_loss", "likely", "アルミ枠からの冷えと結露（3.2）"); want("inner_window", true); want("window_replace", true); }
       else if (a.q2 === UNKNOWN || !a.q2) { if (causes.window_heat_loss) want("inner_window", false, "窓の種類は写真で判断（3.2）"); }
     } else {
       add("window_heat_loss", "needs_check", "窓は直してあるので上位にしない（Q8）");
