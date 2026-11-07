@@ -611,8 +611,10 @@
     const d = new Date(), stamp = `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`;
     const plan = planHtml(false, true);
     render(`
+      <div class="paper">
+      <div class="paper-head"><span>nukumori の見立て</span><span>${stamp}</span></div>
       <h1>家のカルテ</h1>
-      <p class="small muted">「${esc(state.words)}」の家。${stamp} 時点の見立て。工務店にはこの画面を見せるか、下のコピーを送ります。</p>
+      <p class="small muted">「${esc(state.words)}」の家。工務店にはこの画面を見せるか、下のコピーを送ります。</p>
       <div class="karte-pics ${plan ? "" : "one"}"><div class="house-wrap">${A.house({ mode: "result", marks: (x.causes || []).map((c) => ({ id: c.id, rank: c.rank })) })}</div>${plan}</div>
       <div class="card verdict">
         <div class="v"><span class="k">原因</span><div>${(x.causes || []).map((c) => `<p class="small"><span class="rank">${c.rank}</span>${esc(c.name)}</p>`).join("")}</div></div>
@@ -625,6 +627,7 @@
         <div class="kv">${[["住まい", a.q0], ["建った年", a.q1], ["工事", a.q9 ? `「${a.q9}」まで` : ""], ...answered.map((l) => { const i = l.indexOf("："); return i > 0 ? [l.slice(0, i), l.slice(i + 1)] : ["", l]; })].filter(([, v]) => v).map(([k, v]) => `<div><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join("")}</div>
         ${confirmed.length ? `<p class="small"><b>${esc(fam)}が家で確かめた</b>　${confirmed.map((c) => esc(c.replace(/^・/, ""))).join("／")}</p>` : ""}
         ${checks.length ? `<p class="small"><b>現地で見てほしいこと</b>　${checks.map((c) => esc(c.what)).join("、")}</p>` : ""}</div>
+      </div>
       <button class="btn" id="copySheet">このカルテをコピー</button>
       ${more(`<div class="sheet">${esc(sheetFull())}</div><button class="btn secondary" id="copyFull">詳しい版をコピー</button>`, "詳しい版（写真で見つけたこと・そう見た理由・見積りの頼み方）")}
       <p class="small muted center">結果はこのスマホに残しました（表紙の「前回の結果を見る」から開けます）。写真は残していません。</p>
@@ -654,6 +657,19 @@
     } catch {}
   }
 
-  if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+  if ("serviceWorker" in navigator && location.protocol === "https:") {
+    navigator.serviceWorker.register("sw.js").then((reg) => { setInterval(() => reg.update().catch(() => {}), 60_000); }).catch(() => {});
+    let hadController = !!navigator.serviceWorker.controller;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (!hadController) { hadController = true; return; } // first install, nothing to refresh
+      if (screen === "S0") return location.reload();
+      if (document.querySelector(".update-bar")) return;
+      const bar = document.createElement("div");
+      bar.className = "update-bar";
+      bar.innerHTML = `新しい版があります。<button class="link small" type="button">表紙に戻って更新する</button>`;
+      bar.querySelector("button").addEventListener("click", () => location.reload());
+      document.body.prepend(bar);
+    });
+  }
   S0();
 })();

@@ -264,3 +264,14 @@ details.sec[open]:last-of-type > summary { border-bottom: 0; }
 .src { padding-left: 18px; margin: 6px 0 10px; color: var(--muted); }
 .src li { margin: 6px 0; }
 .src a { color: var(--accent); margin-left: 4px; }
+
+/* 2026-11-07 night: the karte is one finished sheet (a document), unlike the flowing screens before it */
+.paper { background: var(--paper); border: 1px solid var(--line); outline: 1px solid var(--line); outline-offset: -5px; border-radius: 6px; padding: 14px 16px 12px; margin: 6px 0 14px; box-shadow: 0 1px 0 rgba(43,36,32,.03), 0 16px 30px -20px rgba(43,36,32,.5); }
+.paper-head { display: flex; justify-content: space-between; font-size: 12px; letter-spacing: .08em; color: var(--muted); border-bottom: 1px solid var(--line); padding: 0 2px 8px; margin: 0 0 4px; }
+.paper h1 { font-size: 22px; margin: 8px 0 4px; }
+.paper .card { background: #f9f4ec; }
+.paper .card.first { background: var(--paper); }
+.paper .house-wrap, .paper .plan { border: 1px solid var(--line); }
+.paper .karte-pics { margin: 8px 0 10px; }
+.update-bar { position: sticky; top: 0; z-index: 4; background: #fff4e5; border-bottom: 1px solid #f0d4b0; padding: 8px 16px; font-size: 14px; text-align: center; }
+.update-bar .link { padding: 0 4px; }
