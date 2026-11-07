@@ -1,51 +1,102 @@
-# nukumori
+# nukumori（ぬくもり）
 
-From one sentence someone in the house said, see why the house is cold, with an architect's eye.
+建築士が家を見る順番を、そのままスマホに入れた。
+「お風呂場が寒い」の一言と写真から、Claude が家の寒さの原因と、まず工務店に相談したい直し方を見立て、「家のカルテ」として残すアプリです。
 
-nukumori is a PWA for anyone worried about a cold house: your own, or the house of family who live far away (the most common case is an adult child looking at a parent's house). Take a few photos (a hand-drawn floor plan works), enter what the person living there said ("the bathroom is freezing"), answer the questions Claude picks after reading the photos, and get the top three likely causes, what to try tonight, and the renovation to talk to a builder about first. Check things at the house later and the diagnosis updates.
+- 使う場所：https://nukumori-api.chaprec-transcribe.workers.dev （スマホのブラウザで開けます。インストール不要）
+- 作品：Built with Claude: Japan 2026（2026年11月2日〜8日）。このリポジトリのコードはすべて期間中に、Claude Code で書きました
+- 作者：福井市の一級建築士（注文住宅・店舗の設計施工）。出発点は、離れて暮らす母の「お風呂場がさむいんだべさ」の一言
 
-Built for **Built with Claude: Japan 2026** (Nov 2–8, 2026). All code in this repository was written during the event.
+## 1分で試す（審査員の方へ）
 
-> Status: under development. How to try it will be added here before submission.
+1. 上の URL を開き、表紙の「例の家で試す（築50年ほどの実家の写真5枚で）」を押す。作者の実家の写真5枚（家族の了解を得て掲載。場所が分かるものは外してあります）が入ります
+2. 一言はもう入っています。「次へ」で、はじめの3問（住まいの種類・築年・工事の大きさの許容）に答える
+3. 約20秒で「見えたこと」が出ます。Claude が写真を読んだ結果（見えた・分からない）、手描きの間取り図に重ねた寒さの道筋、写真から分かったので聞かずに済ませたこと。そのあと Claude が選んだ2〜3問に答える
+4. 約30秒で結果。断面図に原因の番号、そのあと「今日できる（工事なし）→ 工務店に相談・まずこれ → 次に家を見るとき確かめる → 家族への一言」の順。＋で原因の理由・間取り図・写真ごとの所見・出典が開きます
+5. 下の帯の「家で確かめて、見立てを更新」で、確かめてきたことを押して答えると、見立てが更新されます（何が変わったかが先頭に出ます）
+6. 「家のカルテへ」で、残る1枚。断面図と間取り図、原因3つ、まず相談、今日から、工務店に聞くこと3つ。「このカルテをコピー」で工務店に送れる文面になります
 
-## How it works
+自分の家の写真でも試せます（写真は保存しません。端末で縮小して位置情報を落としてから送ります）。写真なしでも進めます。
 
-- Front end: plain HTML / JavaScript PWA on GitHub Pages
-- API relay: Cloudflare Workers. The Claude API key lives only in the Workers secret, never in this repository or the browser
-- Rules an architect can explain (e.g. single-pane windows → interior storm windows first) run on the device. Claude reads the photos and translates the results into everyday language
-- Photos and answers are not stored
+## 誰の、どんな場面か
 
-## Try it
+- 寒いと思った夜に、聞ける相手がいない家族のため。国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（令和4年度時点。出典は下）
+- 3か月後に開く場面：帰省した子どもが前回の結果を開いて家で確かめ、更新する／工務店に行った帰りに、カルテと照らす／住んでいる本人が寒い夜に「自分の家を診る」から開く
+- 売らない・紹介しない。金額を出さない。医学的な判断をしない
 
-(Coming soon: public URL and steps for judges.)
+## 順番（アプリの骨格）
 
-## Checked against the architect's own judgment
+建築士が家を見るときの順番を、そのまま画面にしました。6つの場面は別々の機能でなく、1本の順番です。
 
-Ten cases (the developer's family home with photos and a hand-drawn floor plan, plus nine answer-only cases: windows already replaced, an unvented kerosene heater, "don't know" to everything, a condominium, a rental, a parent who wants no construction, a parent who may move soon, a leaking ceiling, a room that is cold in winter and hot in summer) were run through the app on 2026-11-04 and compared with the developer's judgment as a licensed first-class architect. In all 10, the top cause and the first proposal matched the architect's judgment. None of them produced a cost figure, a promise of warmth, a product name, or a DIY suggestion.
+1. 見る：写真と一言から、家を透かして見る（見えたこと・間取り図の寒さの道筋）
+2. 聞く：見てから、答えで並びが変わる2〜3問だけ聞く
+3. 絞る：原因を3つに絞り、手をつける順番を決める。工事なしでできることはその一段目
+4. 渡す：工務店と同じ目線で話せる形（聞くこと3つ・見立ての要点）にする
+5. 家族で動く：責めない一言と、確かめてきてほしいこと
+6. 確かめて育てる：確かめた事実で見立てが更新され、家のカルテとして残る
 
-## Outside data
+汎用の AI チャットは写真を見せれば答えを1つ返します。nukumori は答えを返す前に、建築士の順番で進みます。リフォーム会社の無料診断とは、売らない・紹介しないことで違います。断熱の啓発ページとは、その家の写真と一言から始まることで違います。
 
-- Test photos are of the developer's own family home. They are kept outside this repository
-- Numbers in the diagnosis come only from public sources (laws and government materials), cited in the app
+## Claude の使い方
 
-## Not in this version
+- 2回呼びます。`/ask`：写真・間取り図・一言・はじめの3問を読み、見えたことと、次に聞く2〜3問を選ぶ（写真で分かることは聞かない。分からないことは推定せず聞く）。`/diagnose`：答えと写真を合わせて、原因・改修案・今日できること・確かめてほしいこと・家族への一言を返す。再診断では前回の要点と確かめた事実を渡し、何が変わったかも返す
+- 建築士のルール（築年・窓・浴室・床・暖房から、疑う原因と改修案の候補と印を出す）は端末側の `web/rules.js` で先に計算し、Claude に出発点として渡します。Claude はそれを写真と答えで上書きでき、変えたときは理由を返します（画面の「この家に合わせて、ふつうの判断を変えたところ」）
+- 間取り図は 0〜1000 の座標で部屋・暖かい部屋・寒い場所までの経路・寒い点を返させ、端末で写真の上に描きます。手描きの図の縮尺の手がかりに、端末で目盛りを重ねてから送ります
+- モデルは Claude Opus 5.5。構造化出力（JSON schema）で画面の項目をそのまま受け取ります。effort は low（Opus medium・Sonnet 5.5 と同じ入力で比べ、分量を絞った指示文なら low で足りた）。システムプロンプトはプロンプトキャッシュの対象にし、2回の呼び出しで写真を同じ順で送ります
+- 言わせないこと：金額、効果の約束、製品名、DIY の勧め、医学的な判断。数字は公開の一次資料にあるものだけ（出典は設計資料 LOGIC.md 6章と、画面の「数字と判断の出典」）
+- 使っていないもの：MCP サーバー、フック。正直に書きます
 
-- No prediction of room temperature or heating cost figures (a schematic of how heat moves, at most)
-- No quote comparison, long-term-care renovation grants, loans, summer heat, or sensor integration
-- Built for detached owner-occupied houses; condominiums and rentals get a "talk to the building manager first" note
+## Claude Code でどう作ったか
+
+- 仕様4本（SPEC・LOGIC・ARCHITECTURE・SCREENS）を先に書き、Worker と画面を Claude Code で実装。設計の文書は別リポジトリ（nukumori-plan）にあります
+- 母の実家の写真で同じ入力を4回流し、原因1位と最初の案が毎回同じか（同じでした。2位・3位は入れ替わることがある）を確かめた
+- 作者自身がスマホで画面収録を2回して、迷った所を直した（結果の先頭、押して答える確かめ、最後の画面をカルテに）
+- サブエージェントを使った所：文脈を持たない別の Claude に、一般の人として画面の文章を点検させた（15項目の指摘から文言を直した）／他のアプリの操作性の画面収録から余白の入れ方を読み取らせた／窓の分類と性能値を一次資料で調べさせた（出典つきの調査メモは nukumori-plan の docs/research）
+
+## 深さの証拠
+
+- 10事例と建築士の判断の照合（2026-11-04。実家の1件は写真と間取り図つき、9件は答えだけ：窓を交換済み／排気筒のない石油ファンヒーター／全部「分からない」／分譲マンション／賃貸／工事を望まない親／近く施設に入る親／天井の雨漏り／夏も暑い2階）。原因1位と最初の案は10件とも作者（一級建築士）の判断と一致。金額・効果の約束・製品名・DIY は1件も出なかった。実行ごとに揺れる所もある：事例10（2階）は原因1位が窓と天井の間で入れ替わる（どちらも「可能性が高い」）
+- 現場の実務者の目も入れた：工務店の社長への22問のアンケートの答えを6事例の見立てと照らし、工事の大きさの区分（窓の交換は小、浴室の断熱改修は中）を直した
+- できないことを画面で言う：断熱材の有無は写真では分からない（確かめ方を返す）、ガラスの枚数は写真で決めない（聞く）、方位は図に印がなければ書かない
+
+## 写真と個人情報
+
+- 写真は端末で縮小して JPEG に再圧縮し（EXIF と位置情報は落ちる）、Claude に送るだけで、サーバーにも端末にも保存しません。結果だけ端末の localStorage に残ります
+- 「例の家」の写真5枚は作者の実家で、家族の了解を得て載せています。場所が分かるもの（表札・周辺）は含めていません
+- API キーは Cloudflare Workers のシークレット（`ANTHROPIC_API_KEY`）にだけ置きます
+
+## この版でやらないこと
+
+- 室温や光熱費の数値の予測、見積書の比較、介護保険の住宅改修、融資、夏の暑さ、センサー連携
+- 一戸建ての持ち家向け。マンションや賃貸は「まず管理組合・大家に相談」の案内にとどめる
+
+## 中身
+
+- `web/`：画面（素の HTML / JS / CSS、PWA）。`app.js` 画面の流れ、`rules.js` 建築士のルール、`art.js` 絵、`sample/` 例の家の写真
+- `worker/`：Cloudflare Worker。`index.js` 中継、`prompt.js` 指示文、`schema.js` 出力の形
+- `scripts/`：`two_step.mjs`（写真つきの1件を /ask → /diagnose で流す）、`rediagnose.mjs`（再診断）、`cases.mjs`（10事例）、`smoke.mjs`
+- 手元で動かす：`npx wrangler dev --port 8791`（`.dev.vars` に `ANTHROPIC_API_KEY`）と `python -m http.server 8000 --directory web`
+
+## 主な出典
+
+- 国土交通省住宅局「最近の省エネ施策について」（令和6年度）：住宅ストックのうち省エネ基準に適合 約18％、無断熱 約24％（令和4年度時点） https://www.j-reform.com/web-seminars/pdf/2024sym-1.pdf
+- 消費者庁「冬季に多発する高齢者の入浴中の事故に御注意ください！」 https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_042
+- 「CASBEE すまい改修チェックリスト」（2015年7月29日発行）ヒートショックの項目 https://www.jsbc.or.jp/research-study/casbee/tools/files/kaishu/CASBEE_Sumai_Checklist.pdf
+- 国土交通省「断熱改修等による居住者の健康への影響調査 中間報告（第3回）」（2019年1月） https://www.mlit.go.jp/report/press/house07_hh_000198.html
+- 日本サッシ協会「建具とガラスの組み合わせによる開口部の熱貫流率」（2025年7月改訂） https://www.jsma.or.jp/Portals/0/images/useful/technology/25-0701.pdf
+- 補助制度は年度で変わるため、アプリは金額を出さず、窓口で最新を確かめるよう案内します
 
 ---
 
-## 日本語
+## English
 
-住む人の一言から、家の寒さを建築士の目で診るアプリです。自分の家にも、離れて暮らす家族の家にも使えます（いちばん多いのは、離れて暮らす親の家を子どもが見る使い方です）。親の一言から始めて、いくつかの質問と任意の写真で、寒さの原因トップ3と優先順位つきの改修案を出します。
+**nukumori** puts the order in which an architect looks at a house onto a phone. From one sentence someone in the house said ("the bathroom is freezing") and a few photos, Claude works out why the house is cold, what to try tonight, and which renovation to ask a builder about first, then leaves a one-page "house record" (家のカルテ) that grows each time the family checks something at the house.
 
-Built with Claude: Japan 2026（2026年11月2日〜8日）の作品です。このリポジトリのコードはすべて期間中に書きました。
+- Try it: https://nukumori-api.chaprec-transcribe.workers.dev — tap "例の家で試す" on the cover to load five photos of the author's parents' house (shared with the family's consent, nothing that shows where it is) and reach the end in about a minute. Your own photos work too; they are shrunk on the device, stripped of location data, sent to Claude once, and never stored
+- Built for **Built with Claude: Japan 2026** (Nov 2–8, 2026) by a licensed first-class architect in Fukui. All code was written during the event with Claude Code
 
-- 画面は素の HTML / JS の PWA（GitHub Pages）。API の中継は Cloudflare Workers で、Claude API キーは Workers のシークレットにだけ置きます
-- 建築士として説明できる判断はルールにして端末で計算し、写真の読み取りと暮らしの言葉への翻訳を Claude に任せます
-- 写真と回答は保存しません
-- テスト用の写真は開発者の家族の家のもので、リポジトリの外に置いています。診断の数値は公開の法令・行政資料だけを使います
-- 10の事例（実家の写真と手描きの間取り図1件と、答えだけの9件：窓を交換済み、排気筒のない石油ファンヒーター、全部「分からない」、分譲マンション、賃貸、工事を望まない親、近く施設に入る親、天井の雨漏り、夏も暑い2階）を 2026-11-04 にアプリで診断し、開発者（一級建築士）の判断と照らしました。10件とも原因1位と最初の案が一致しました。費用の金額、効果の約束、製品名、DIY の勧めは1件も出ませんでした
-- 審査員向けの使い方は提出前にここへ書きます
-- この版でやらないこと：室温や光熱費の数値の予測（仕組みの模式図まで）、見積書の比較、介護保険の住宅改修、融資、夏の暑さ、センサー連携。一戸建ての持ち家向けで、マンションや賃貸は「まず管理者に相談」の案内にとどめます
+How Claude is used: two calls. `/ask` reads the photos, the hand-drawn floor plan and the first three answers, says what it saw and what it could not, draws the cold route on the plan (coordinates 0–1000), and picks the two or three questions whose answers change the order. `/diagnose` returns the top three causes, the proposals in order, what to do today without construction, what to check at the house, and one gentle sentence for the family. A re-diagnosis takes the previous summary plus what the family confirmed and returns what changed. Rules an architect can explain run on the device first (`web/rules.js`) and are handed to Claude as the starting point; Claude may override them and must say why. Model: Claude Opus 5.5, structured outputs (JSON schema), effort low, system prompt under prompt caching. Not used: MCP servers, hooks.
+
+Depth: ten cases compared with the architect's own judgment on 2026-11-04 (top cause and first proposal matched in all ten; no cost figures, promises, product names or DIY advice appeared; one case flips its top cause between two "likely" candidates from run to run). A builder's 22-question survey was compared with six cases and changed the work-size labels. Four runs on the same photos gave the same top cause and first proposal each time. The app says what it cannot know from photos (insulation, number of panes, orientation) and returns how to check instead.
+
+Not in this version: room-temperature or cost predictions, quote comparison, long-term-care grants, loans, summer heat, sensors. Built for detached owner-occupied houses; condominiums and rentals get a "talk to the manager first" note.
