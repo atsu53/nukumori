@@ -426,12 +426,14 @@
         ${first ? `<div class="v"><span class="k">まず相談</span><div><b>${esc(first.name)}</b>${sizeTag(first)}</div></div>` : ""}
         ${today[0] ? `<div class="v"><span class="k">今日から</span><div><b>${esc(today[0].name)}</b></div></div>` : ""}
       </div>
-      <div class="jump"><button data-to="sec-causes">原因</button><button data-to="sec-fix">直し方</button><button data-to="sec-checks">確かめること</button></div>
+      <div class="jump"><button data-to="sec-causes">原因</button>${today.length ? `<button data-to="sec-today">今日から</button>` : ""}<button data-to="sec-fix">直し方</button><button data-to="sec-checks">確かめること</button></div>
       ${causeHouse(x)}
       <h2 id="sec-causes">原因の見立て</h2>
       ${causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}${more(`<p class="small">${esc(c.reason)}</p>`, "なぜそう見たか")}</div>`).join("")}
       ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml(true)}` : ""}
       ${x.photo_findings.length ? more(x.photo_findings.map(findingCard).join(""), `写真で見つけたこと（${x.photo_findings.length}枚）`) : ""}
+      ${today.length ? `<section class="today" id="sec-today"><h2>今日からできること<span class="tag">工事なし</span></h2>
+      ${today.map((a, i) => `<div class="act"><span class="rank">${i + 1}</span><div><b>${esc(a.name)}</b>${fold(a.description)}</div></div>`).join("")}</section>` : ""}
       <h2 id="sec-fix">まず相談するなら、これ</h2>
       ${proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談</span>` : ""}
         <p class="small">${sizeTag(p)}</p>
@@ -440,7 +442,6 @@
         ${p.first_choice ? "" : `<p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>`}
         <p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>
         <p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`)}</div>`).join("")}
-      ${today.length ? `<h3>今日からできること（工事なし）</h3>${today.map((a) => `<div class="card"><b>${esc(a.name)}</b>${fold(a.description)}</div>`).join("")}` : ""}
       ${bathStages ? more(`${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
       <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>`, "お風呂の寒さ対策は、どの順番で進めるか") : ""}
       ${x.rule_overrides && x.rule_overrides.length ? `<details class="small"><summary class="muted">建築士のルールから変えたところ</summary><ul>${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul></details>` : ""}

@@ -214,3 +214,14 @@ summary { -webkit-tap-highlight-color: transparent; }
 .karte-pics .house-wrap, .karte-pics .plan { margin: 0; }
 .verdict .v .rank { min-width: 22px; height: 22px; line-height: 22px; font-size: 12px; margin-right: 6px; }
 .verdict .v p.small { margin: 2px 0; }
+
+/* 2026-11-07 night: what can be done today stands on its own, before the works (the first rung of the order). */
+.today { background: #fff4e5; border: 2px solid var(--accent); border-radius: var(--radius); padding: 10px 14px 4px; margin: 18px 0; }
+.today h2 { margin: 2px 0 6px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
+.today h2 .tag { font-weight: 600; }
+.today .act { display: grid; grid-template-columns: 26px 1fr; gap: 8px; padding: 9px 0; border-top: 1px solid #f0d4b0; }
+.today .act:first-of-type { border-top: 0; }
+.today .act .rank { display: inline-block; min-width: 26px; height: 26px; line-height: 26px; text-align: center; border-radius: 50%; background: var(--accent); color: #fff; font-weight: 700; font-size: 14px; margin-top: 1px; }
+.today .act b { display: block; font-size: 16px; line-height: 1.4; }
+.today .act p { margin: 2px 0; }
+.today .act .more { margin: 2px 0 0; }
