@@ -76,7 +76,8 @@
       <p class="lead">${lead}</p>
       <div class="steps">${steps.map(([s, k], i) => `<div>${A.step(k)}<span class="n">${i + 1}</span>${s}</div>`).join("")}</div>
       ${buttons}
-    `);
+      <div class="society">国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（令和4年度時点）。</div>
+    `, { foot: true });
     on("#start", "click", SWho);
     on("#last", "click", () => { Object.assign(state, last.state); state.result = last.result; state.model = last.model; S5(); });
   }
@@ -153,9 +154,11 @@
   function S2() {
     screen = "S2";
     const list = slots();
+    const n = Object.keys(state.photos).length;
     render(`
       <h1>まず、家の写真を入れてください</h1>
       <p class="muted">${isSelf() ? "撮るか、写真から選びます。" : "撮るか、送ってもらった写真を選びます。"}写真を見てから、聞くことを決めます。なくても進めます。</p>
+      <label class="btn pick-all">まとめて選ぶ（5枚まで）<input type="file" accept="image/*" multiple id="pickAll"><span class="small">枠の順に入ります。違っていたら、その枠の「選ぶ」で入れ替えられます</span></label>
       <div class="photo-slots">
         ${list.map((s) => {
           const p = state.photos[s.key];
@@ -172,13 +175,24 @@
         }).join("")}
       </div>
       <div class="notice small">顔・表札・住所が写っていたら、外すか撮り直してください。写真に位置情報は付けず、サーバーに保存しません。</div>
-      <button class="btn" id="next">${Object.keys(state.photos).length ? "次へ" : "写真なしで進む"}</button>
+      <button class="btn" id="next">${n ? "次へ" : "写真なしで進む"}</button>
     `, { back: SWho });
-    on("input[type=file]", "change", async (e) => {
-      const f = e.target.files[0]; if (!f) return;
-      const k = e.target.dataset.k;
+    const put = async (k, f) => {
       const label = list.find((s) => String(s.key) === k).label;
       try { state.photos[k] = { label, ...(await shrink(f, k === "5")) }; } catch { alert("この写真は読み込めませんでした。別の写真を選んでください。"); }
+    };
+    on("input[type=file][data-k]", "change", async (e) => {
+      const f = e.target.files[0]; if (!f) return;
+      await put(e.target.dataset.k, f);
+      S2();
+    });
+    // Several photos at once: they fill the empty slots in order; when every slot is full, from the first again.
+    on("#pickAll", "change", async (e) => {
+      const files = Array.from(e.target.files || []).slice(0, list.length);
+      if (!files.length) return;
+      let keys = list.map((s) => String(s.key)).filter((k) => !state.photos[k]);
+      if (keys.length < files.length) keys = list.map((s) => String(s.key));
+      for (let i = 0; i < files.length; i++) await put(keys[i], files[i]);
       S2();
     });
     on("[data-del]", "click", (e) => { delete state.photos[e.currentTarget.dataset.del]; S2(); });
@@ -297,15 +311,17 @@
     const a = state.ask;
     const inf = a.inferred;
     const notes = a.photo_notes || [];
+    const next = `<button class="btn next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button>`;
     render(`
       <h1>写真と答えから、見えたこと</h1>
       <div class="card"><p class="lead">${esc(a.first_look)}</p></div>
+      ${next}
       ${planHtml() ? `<h3>間取り図に、寒さの道筋を重ねました</h3>${planHtml()}` : ""}
-      ${notes.length ? `<h3>写真ごとに見たこと</h3>${notes.map((n) => `<div class="card">${photoThumb(n.photo)}<span class="tag">写真${n.photo}：${esc(photoLabel(n.photo))}</span><p class="small">${esc(n.note)}</p></div>`).join("")}` : ""}
-      ${inf.length ? `<h3>写真から読み取ったこと（答えなくて大丈夫です）</h3>${inf.map((i) => `<div class="card small"><b>${esc(R.QUESTIONS[i.id].text)}</b>：${esc(i.value)}<p class="muted">${esc(i.basis)}</p></div>`).join("")}` : ""}
-      <button class="btn" id="next">${a.questions.length ? `あと${a.questions.length}問、聞かせてください` : "診断する"}</button>
+      ${notes.length ? `<h3>写真ごとに</h3>${notes.map((n) => `<div class="shot">${photoThumb(n.photo)}<div><span class="tag">写真${n.photo}：${esc(photoLabel(n.photo))}</span><p class="small"><b>見えた</b>　${esc(seenOf(n))}</p>${unknownOf(n) ? `<p class="small muted"><b>分からない</b>　${esc(unknownOf(n))}</p>` : ""}</div></div>`).join("")}` : ""}
+      ${inf.length ? `<h3>写真から読み取ったこと（答えなくて大丈夫です）</h3>${inf.map((i) => `<div class="card small"><b>${esc(R.QUESTIONS[i.id].text)}</b>：${esc(i.value)}${more(`<p class="muted">${esc(i.basis)}</p>`, "根拠")}</div>`).join("")}` : ""}
+      ${notes.length || inf.length ? next : ""}
     `, { back: () => { state.qIndex = nFixed - 1; S3(); } });
-    on("#next", "click", () => { state.qIndex = nFixed; S3(); });
+    on(".next", "click", () => { state.qIndex = nFixed; S3(); });
   }
 
   // ---------- S4 ----------
@@ -344,11 +360,18 @@
     }
   }
 
-  // ---------- results ----------
+  // ---------- results: one screen that starts with the verdict (2026-11-07, from the author's recording) ----------
   const r = () => state.result;
+  // Results saved before 2026-11-07 carry checks as sentences and photo notes as one text; read both forms.
+  const chk = (c) => (typeof c === "string" ? { what: c, how: "", yes: "はい", no: "いいえ" } : { what: c.what || "", how: c.how || "", yes: c.yes || "はい", no: c.no || "いいえ" });
+  const checksOf = (x) => (x.checks || []).map(chk);
+  const checkLine = (c) => (c.how ? `${c.what}（${c.how}）` : c.what);
+  const seenOf = (f) => f.seen ?? f.note ?? "";
+  const unknownOf = (f) => f.unknown ?? "";
   function photoThumb(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? `<img class="thumb" src="${p.preview}" alt="写真${n}">` : ""; }
   function photoLabel(n) { const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
   const previews = () => Object.keys(state.photos).sort().map((k) => state.photos[k].preview);
+  const findingCard = (f) => `<div class="shot">${photoThumb(f.photo)}<div><span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p class="small"><b>見えた</b>　${esc(seenOf(f))}</p>${unknownOf(f) ? `<p class="small muted"><b>分からない</b>　${esc(unknownOf(f))}</p>` : ""}</div></div>`;
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
@@ -363,22 +386,6 @@
     return `<h1>${moved.length ? "確かめてきたことで、ここが変わりました" : "確かめてきましたが、見立ては変わりませんでした"}</h1>
       ${moved.map((c) => `<div class="card first"><b>${esc(c.what)}</b><p class="small"><span class="tag">前回</span>${esc(c.before)}</p><p class="small"><span class="tag strong">今回</span>${esc(c.after)}</p><p class="small muted">${esc(c.why)}</p></div>`).join("")}
       ${kept.map((c) => `<div class="card"><b>${esc(c.what)}</b><p class="small"><span class="tag">変わらず</span>${esc(c.after)}</p><p class="small muted">${esc(c.why)}</p></div>`).join("")}`;
-  }
-
-  function S5() {
-    screen = "S5";
-    const x = r();
-    render(`
-      ${x.changes && x.changes.length ? `${changesHtml(x.changes)}
-      <h2>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h2>` : `<h1>${esc(x.place || state.place || "その場所")}が寒い、いちばんの原因は</h1>`}
-      ${causeHouse(x)}
-      ${x.causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> <span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span>${fold(c.reason)}</div>`).join("")}
-      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml(true)}` : ""}
-      ${x.photo_findings.length ? more(x.photo_findings.map((f) => `<div class="card">${photoThumb(f.photo)}<span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p class="small">${esc(f.note)}</p></div>`).join(""), `写真で見つけたこと（${x.photo_findings.length}枚）`) : ""}
-      <div class="society">国の推計では、今の断熱の基準を満たす家は約18％、無断熱の家は約24％です（令和4年度時点）。</div>
-      <button class="btn" id="next">どう直す？</button>
-    `, { back: S0, foot: true });
-    on("#next", "click", S6);
   }
 
   // Heat-shock stages from the CASBEE home renovation checklist (2015-07-29, item 1-(7), p.7).
@@ -398,46 +405,63 @@
     ].map((x) => ({ ...x, label: label[x.s] }));
   }
 
-  function S6() {
-    screen = "S6";
+  // One line on bath safety (Consumer Affairs Agency), always visible when the bath is the place.
+  const BATH_NOTICE = `<div class="notice small"><b>お風呂の寒さは、冬の事故につながります。</b>入浴前に脱衣所と浴室を暖める。湯は41度以下、つかるのは10分まで。浴槽から急に立ち上がらない。<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁の注意喚起</a>。気になる症状があれば医師に相談してください。</div>`;
+
+  // Everything the diagnosis says, on one screen: the verdict first (cause, what to ask about, what to do
+  // today), the house, then each part folded to its heading. The words themselves are the same as before;
+  // only the reading order changed (2026-11-07: the author's own recording took 14 minutes to read through).
+  function S5() {
+    screen = "S5";
     const x = r();
+    const again = !!(x.changes && x.changes.length);
+    const causes = x.causes || [], proposals = x.proposals || [], today = x.today_actions || [], checks = checksOf(x);
+    const first = proposals.find((p) => p.first_choice) || proposals[0];
+    const place = x.place || state.place || "その場所";
+    const bath = state.placeId === "bath" || (state.ruleResult && state.ruleResult.heat_shock_level !== "none");
     const bathStages = state.ruleResult && state.ruleResult.heat_shock_level !== "none" ? heatShockStages() : null;
+    const conf = (c) => `<span class="tag ${c.confidence === "almost_certain" ? "strong" : ""}">${esc(R.CONF_LABEL[c.confidence] || c.confidence)}</span>`;
+    const sizeTag = (p) => `<span class="tag">${A.size(p.work_size)}${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span>`;
     render(`
-      <h1>まず相談するなら、これ</h1>
-      ${x.proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談</span>` : ""}
-        <p class="small"><span class="tag">${A.size(p.work_size)}${esc(R.WORK_LABEL[p.work_size] || p.work_size)}</span></p>
+      ${again ? changesHtml(x.changes) : ""}
+      <h1>${esc(place)}が寒い、いちばんの原因は</h1>
+      <div class="card verdict">
+        ${causes[0] ? `<div class="v"><span class="k">原因</span><div><b>${esc(causes[0].name)}</b>${conf(causes[0])}</div></div>` : ""}
+        ${first ? `<div class="v"><span class="k">まず相談</span><div><b>${esc(first.name)}</b>${sizeTag(first)}</div></div>` : ""}
+        ${today[0] ? `<div class="v"><span class="k">今日から</span><div><b>${esc(today[0].name)}</b></div></div>` : ""}
+      </div>
+      ${causeHouse(x)}
+      <h2>原因の見立て</h2>
+      ${causes.map((c) => `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}${more(`<p class="small">${esc(c.reason)}</p>`, "なぜそう見たか")}</div>`).join("")}
+      ${planHtml() ? `<h2>間取り図で見ると</h2>${planHtml(true)}` : ""}
+      ${x.photo_findings.length ? more(x.photo_findings.map(findingCard).join(""), `写真で見つけたこと（${x.photo_findings.length}枚）`) : ""}
+      <h2>まず相談するなら、これ</h2>
+      ${proposals.map((p) => `<div class="card ${p.first_choice ? "first" : ""}">${A.proposal(p.id)}<span class="rank">${p.rank}</span><b>${esc(p.name)}</b>${p.first_choice ? ` <span class="tag strong">まず相談</span>` : ""}
+        <p class="small">${sizeTag(p)}</p>
         ${p.first_choice ? `<p class="small">${esc(p.expected_change)}</p>` : ""}
         ${more(`<p class="small">${esc(p.description)}</p>
         ${p.first_choice ? "" : `<p class="small"><b>期待できる変化：</b>${esc(p.expected_change)}</p>`}
         <p class="small"><b>なぜこの順位か：</b>${esc(p.why_this_rank)}</p>
         <p class="small"><span class="tag">${esc(R.SUBSIDY_LABEL[p.subsidy] || p.subsidy)}</span></p>`)}</div>`).join("")}
-      ${x.today_actions && x.today_actions.length ? `<h3>今日からできること（工事なし）</h3>${x.today_actions.map((a) => `<div class="card"><b>${esc(a.name)}</b>${fold(a.description)}</div>`).join("")}` : ""}
+      ${today.length ? `<h3>今日からできること（工事なし）</h3>${today.map((a) => `<div class="card"><b>${esc(a.name)}</b>${fold(a.description)}</div>`).join("")}` : ""}
       ${bathStages ? more(`${bathStages.map((s) => `<div class="card ${s.s === "now" ? "first" : ""}"><span class="tag ${s.s === "now" ? "strong" : ""}">${esc(s.label)}</span><b>段階${s.n}</b><p class="small">${esc(s.text)}</p></div>`).join("")}
-      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>`, "お風呂の寒さ対策の順番") : ""}
-      <p class="small muted">費用の金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、国の「住宅省エネ2026キャンペーン」の公式サイトと自治体の窓口で最新を確かめてください。</p>
+      <p class="small muted">段階は「CASBEE すまい改修チェックリスト」（2015年7月29日発行）のヒートショックの項目にもとづきます。「今ここ」はこの家の答えから当てはめたもので、断熱の有無は現地で確かめてください。</p>`, "お風呂の寒さ対策は、どの順番で進めるか") : ""}
       ${x.rule_overrides && x.rule_overrides.length ? `<details class="small"><summary class="muted">建築士のルールから変えたところ</summary><ul>${x.rule_overrides.map((o) => `<li>${esc(o.what)} — ${esc(o.why)}</li>`).join("")}</ul></details>` : ""}
-      <button class="btn" id="next">確認してほしいこと</button>
-    `, { back: S5, foot: true });
-    on("#next", "click", S7);
-  }
-
-  function S7() {
-    screen = "S7";
-    const x = r();
-    const bath = state.placeId === "bath" || (state.ruleResult && state.ruleResult.heat_shock_level !== "none");
-    render(`
-      <h1>${isSelf() ? "家で確かめてほしいこと" : "次に家を見るとき、確かめてほしいこと"}</h1>
-      <ul>${x.checks.map((c) => `<li>${esc(c)}</li>`).join("")}</ul>
+      <h2>${isSelf() ? "家で確かめてほしいこと" : "次に家を見るとき、確かめてほしいこと"}</h2>
+      ${checks.map((c) => `<div class="card chk"><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}</div>`).join("")}
       ${isSelf() || !x.message_to_parent ? "" : `<h2>家族への一言</h2>
       <div class="card">${A.care()}<p class="lead">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
-      ${bath ? `<div class="notice"><b>お風呂の寒さは、冬の事故につながります。</b><p class="small">消費者庁の注意喚起：入浴前に脱衣所や浴室を暖める。湯温は41度以下、湯につかるのは10分までを目安に。浴槽から急に立ち上がらない。入浴前に家族に声をかける。<a href="https://www.caa.go.jp/policies/policy/consumer_safety/caution/caution_009/" target="_blank" rel="noopener">消費者庁のページ</a></p><p class="small muted">気になる症状があれば医師に相談してください。</p></div>` : ""}
-      <button class="btn secondary" id="confirm">確かめてきたので、診断し直す</button>
+      ${bath ? BATH_NOTICE : ""}
+      <p class="small muted">金額はここでは出しません。工務店の見積りで確かめてください。補助制度は年度で変わるので、窓口で最新を確かめてください。</p>
+      ${again ? "" : `<button class="btn secondary" id="confirm">確かめてきたので、診断し直す</button>`}
       <button class="btn" id="next">保存・共有</button>
-    `, { back: S6, foot: true });
+      ${again ? `<button class="link small" id="confirm">さらに確かめたことを足して、もう一度更新する</button>` : ""}
+    `, { back: S0 });
     on("#copyMsg", "click", () => copy(x.message_to_parent, "#copyMsg"));
     on("#confirm", "click", SConfirm);
     on("#next", "click", S8);
   }
+  const S6 = S5, S7 = S5; // the three result screens became one (2026-11-07)
 
   // ---------- S7b: the family checked things at the house; diagnose again ----------
   // The previous result is sent as a short summary so Claude updates it instead of starting over.
@@ -446,27 +470,38 @@
     return {
       causes: x.causes.map((c) => ({ rank: c.rank, id: c.id, name: c.name, confidence: c.confidence })),
       proposals: x.proposals.map((p) => ({ rank: p.rank, id: p.id, name: p.name, first_choice: p.first_choice })),
-      checks: x.checks,
+      checks: checksOf(x).map(checkLine),
       photo_findings: x.photo_findings,
       today_actions: (x.today_actions || []).map((a) => a.name),
     };
   }
+  // Each check is answered with a tap (the two answers Claude wrote for it, or まだ), plus an optional word.
   function SConfirm() {
     screen = "SConfirm";
     const x = r();
+    const checks = checksOf(x);
     render(`
       <h1>家で、確かめてきたこと</h1>
-      <p class="muted">見てきたことを、ひとつずつ書いてください。まだのものは空のままで大丈夫です。Claude が見立てを更新します。</p>
-      ${x.checks.map((c, i) => `<div class="card"><p class="small">${esc(c)}</p><textarea class="confirm" data-i="${i}" rows="2" placeholder="見たこと・分かったこと（例：断熱材は見えなかった）"></textarea></div>`).join("")}
+      <p class="muted">確かめたものだけ押してください。まだのものは、そのままで大丈夫です。</p>
+      ${checks.map((c, i) => `<div class="card chk" data-i="${i}"><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}
+        <div class="taps">${[c.yes, c.no, "まだ"].map((o, j) => `<button class="tap ${j === 2 ? "on" : ""}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
+        <input type="text" class="note" placeholder="ひとこと添えるなら（任意）"></div>`).join("")}
       <button class="btn" id="go" disabled>この内容で診断し直す</button>
-    `, { back: S7, foot: true });
+    `, { back: S5 });
     const $go = $screen.querySelector("#go");
-    const answers = () => Array.from($screen.querySelectorAll(".confirm")).map((t) => ({ check: x.checks[t.dataset.i], answer: t.value.trim() || "まだ" }));
-    on(".confirm", "input", () => { $go.disabled = !answers().some((a) => a.answer !== "まだ"); });
+    const answers = () => Array.from($screen.querySelectorAll(".chk")).map((el) => {
+      const c = checks[+el.dataset.i];
+      const pick = (el.querySelector(".tap.on") || {}).dataset?.o || "まだ";
+      const note = el.querySelector(".note").value.trim();
+      const answer = pick !== "まだ" ? (note ? `${pick}（${note}）` : pick) : note || "まだ";
+      return { check: checkLine(c), answer };
+    });
+    const refresh = () => { $go.disabled = !answers().some((a) => a.answer !== "まだ"); };
+    on(".tap", "click", (e) => { const b = e.currentTarget; b.parentElement.querySelectorAll(".tap").forEach((t) => t.classList.toggle("on", t === b)); refresh(); });
+    on(".note", "input", refresh);
     $go.addEventListener("click", () => {
       state.previous = previousSummary();
       state.confirmed = answers();
-      if (!state.ask) state.ask = null;
       S4();
     });
   }
@@ -487,38 +522,55 @@
     return r().proposals.filter((p) => ASK_BUILDER[p.id]).sort((a, b) => a.rank - b.rank).slice(0, 3).map((p) => ASK_BUILDER[p.id]);
   }
 
-  function sheetText() {
-    const x = r();
-    const a = state.answers;
-    const lines = [];
+  // Two sheets (2026-11-07): the short one is what gets handed over; the full one is there for the builder
+  // who wants the reasons, the photo notes and how to split the estimate.
+  function sheetHead() {
+    const x = r(), a = state.answers;
     const fam = isSelf() ? "住んでいる本人" : "家族";
-    lines.push("工務店に見せる相談シート（nukumori で作成）", `${fam}が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。`, "");
+    const asked = qList().filter((q) => !R.FIXED.includes(q) && a[q]).map((q) => `・${R.QUESTIONS[q].text}：${a[q]}`);
+    const inferred = Object.entries(state.inferred || {}).filter(([q]) => !a[q]).map(([q, v]) => `・${R.QUESTIONS[q].text}：${v.value}（写真からの AI の推定。要確認）`);
+    const confirmed = (state.confirmed || []).filter((c) => c.answer !== "まだ").map((c) => `・${c.check.split("（")[0]} → ${c.answer}`);
+    return { x, a, fam, asked, inferred, confirmed, first: x.proposals.find((p) => p.first_choice) || x.proposals[0] };
+  }
+  function sheetShort() {
+    const { x, a, fam, asked, inferred, confirmed, first } = sheetHead();
+    const L = ["工務店に見せる相談シート（nukumori で作成）", ""];
+    L.push("■ 聞きたいこと", ...builderQuestions().map((q, i) => `${i + 1}. ${q}`), "");
+    L.push("■ 困っていること", `「${state.words}」（${x.place || state.place || "場所は未記入"}${state.time ? "・" + state.time : ""}）`, "");
+    L.push("■ 家のこと", `・${a.q0 || "住まいの種類：未回答"}／${a.q1 || "築年：未回答"}／工事は「${a.q9 || "未回答"}」まで`, ...asked, ...inferred, "");
+    if (confirmed.length) L.push(`■ ${fam}が家で確かめたこと`, ...confirmed, "");
+    L.push("■ AI の見立て（目安）", `・原因：${x.causes.map((c) => `${c.rank}. ${c.name}`).join("　")}`, `・まず相談：${first ? first.name : "―"}`);
+    const others = x.proposals.filter((p) => p !== first).map((p) => p.name);
+    if (others.length) L.push(`・ほかの候補：${others.join("、")}`);
+    L.push("", "■ 現地で見てほしいこと", ...checksOf(x).map((c) => `・${c.what}`), "");
+    L.push("※ 見立ては写真と答えからの目安で、現地調査に代わるものではありません。金額は書いていません。詳しい版（写真の所見・理由・見積の分け方）は別にあります。");
+    return L.join("\n");
+  }
+  function sheetFull() {
+    const { x, a, fam, asked, inferred, confirmed } = sheetHead();
+    const lines = [];
+    lines.push("工務店に見せる相談シート（nukumori で作成・詳しい版）", `${fam}が確かめたことと、AI の見立て（目安）を分けて書いています。見立ては現地調査に代わるものではなく、工事の内容と費用は現地を見たうえでの見積りで決めてください。`, "");
     lines.push("■ 工務店に聞きたいこと", ...builderQuestions().map((q, i) => `${i + 1}. ${q}`), "");
     lines.push("■ 困っていること", `住む人の一言：「${state.words}」`, `場所・時間帯：${x.place || state.place || "未記入"}${state.time ? "・" + state.time : ""}`, "");
     lines.push(`■ ${fam}が優先したいこと`, `・工事の大きさ：${a.q9 || "未回答"}`);
     if (a.q10) lines.push(`・寒さのほかに直したいところ：${a.q10}`);
     lines.push("");
-    lines.push(`■ ${fam}が確認したこと（質問の答え）`);
-    qList().filter((q) => q !== "q9" && q !== "q10").forEach((q) => lines.push(`・${R.QUESTIONS[q].text}：${a[q] || "未回答"}`));
-    Object.entries(state.inferred || {}).filter(([q]) => !a[q]).forEach(([q, v]) => lines.push(`・${R.QUESTIONS[q].text}：${v.value}（写真からの AI の推定。要確認）`));
+    lines.push(`■ ${fam}が確認したこと（質問の答え）`, `・${R.QUESTIONS.q0.text}：${a.q0 || "未回答"}`, `・${R.QUESTIONS.q1.text}：${a.q1 || "未回答"}`, ...asked, ...inferred);
     lines.push("", "■ AI の見立て（目安。写真と答えからの推測で、現地では違うことがあります）");
     lines.push("＜写真から読み取ったこと＞");
-    x.photo_findings.forEach((f) => lines.push(`・写真${f.photo}：${f.note}`));
+    x.photo_findings.forEach((f) => lines.push(`・写真${f.photo}：見えた＝${seenOf(f)}${unknownOf(f) ? `／分からない＝${unknownOf(f)}` : ""}`));
     if (!x.photo_findings.length) lines.push("・写真なし");
     lines.push("＜寒さの原因の見立て＞");
     x.causes.forEach((c) => lines.push(`${c.rank}. ${c.name}（${R.CONF_LABEL[c.confidence] || c.confidence}）：${c.reason}`));
     lines.push("＜相談したい候補（優先順）＞");
-    x.proposals.forEach((p) => lines.push(`${p.rank}. ${p.name}${p.first_choice ? "【まず相談】" : ""}（工事の大きさの目安：${R.WORK_LABEL[p.work_size] || p.work_size}）`));
+    x.proposals.forEach((p) => lines.push(`${p.rank}. ${p.name}${p.first_choice ? "【まず相談】" : ""}（工事の大きさの目安：${R.WORK_LABEL[p.work_size] || p.work_size}）：${p.why_this_rank}`));
     if (state.ruleResult && state.ruleResult.heat_shock_level !== "none") {
       lines.push("＜お風呂の寒さ対策の段階（CASBEE すまい改修チェックリストのヒートショックの項目）＞");
       heatShockStages().forEach((s) => lines.push(`・段階${s.n}［${s.label}］${s.text}`));
     }
-    if (state.confirmed && state.confirmed.some((c) => c.answer !== "まだ")) {
-      lines.push("", `■ ${fam}が家で確かめたこと`);
-      state.confirmed.filter((c) => c.answer !== "まだ").forEach((c) => lines.push(`・${c.check} → ${c.answer}`));
-    }
+    if (confirmed.length) lines.push("", `■ ${fam}が家で確かめたこと`, ...confirmed);
     lines.push("", "■ 現地で必ず確かめてほしいこと（見立ての前提になっている部分です）");
-    x.checks.forEach((c) => lines.push(`・${c}`));
+    checksOf(x).forEach((c) => lines.push(`・${checkLine(c)}`));
     lines.push("・（どの家でも）脱衣所や浴室に暖房をつけるときは、分電盤の空き回路と容量／内窓をつけるときは、今の窓枠の奥行で取り付けられるか");
     lines.push("", "■ 見積のときに分けてほしいこと", "・工事の範囲／製品と性能／撤去・復旧／調査費／追加工事になる条件／補助制度の扱い／浴室が使えない期間／保証");
     lines.push("", "■ 補助制度について", "・国の住宅省エネ2026キャンペーン（先進的窓リノベ2026事業など）と自治体の補助が使える可能性があります。対象・金額・期限は年度で変わるので、公式サイトと窓口で最新を確かめてください。このシートには金額を書いていません");
@@ -531,14 +583,16 @@
       <h1>手元に残す・伝える</h1>
       <div class="card first"><b>工務店に聞くこと</b>
         <ol class="asks">${builderQuestions().map((q) => `<li>${esc(q)}</li>`).join("")}</ol>
-        <p class="small muted">これに、工務店向けの詳しい内容をつけて渡します。</p>
         <button class="btn" id="copySheet">相談シートをコピー</button>
-        ${more(`<div class="sheet">${esc(sheetText())}</div>`, "工務店向けの全文を見る")}</div>
+        <p class="small muted">1枚に収めた短い版です。聞くこと・困っていること・確かめたこと・見立ての要点が入ります。</p>
+        ${more(`<div class="sheet">${esc(sheetShort())}</div>`, "短い版を見る")}
+        ${more(`<div class="sheet">${esc(sheetFull())}</div><button class="btn secondary" id="copyFull">詳しい版をコピー</button>`, "詳しい版（写真の所見・理由・見積の分け方）")}</div>
       <p class="small muted">この端末に保存しました。最初の画面の「前回の結果を見る」から戻れます。写真は保存しません。</p>
       <button class="btn secondary" id="copyAll">結果の要約をコピー</button>
       <button class="btn" id="again">もう一度診る</button>
-    `, { back: S7, foot: true });
-    on("#copySheet", "click", () => copy(sheetText(), "#copySheet"));
+    `, { back: S5, foot: true });
+    on("#copySheet", "click", () => copy(sheetShort(), "#copySheet"));
+    on("#copyFull", "click", () => copy(sheetFull(), "#copyFull"));
     on("#copyAll", "click", () => copy(summaryText(), "#copyAll"));
     on("#again", "click", S0);
   }

@@ -172,3 +172,25 @@ summary { -webkit-tap-highlight-color: transparent; }
   .scan-line { animation: none; top: 50%; }
   .screen.enter > * { animation: none !important; }
 }
+
+/* 2026-11-07: the verdict card, photo notes as a strip, tap answers for the checks, several photos at once */
+.verdict { padding: 6px 16px; }
+.verdict .v { display: grid; grid-template-columns: 64px 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); }
+.verdict .v:first-child { border-top: 0; }
+.verdict .k { font-size: 12px; font-weight: 700; color: var(--accent); padding-top: 5px; letter-spacing: .04em; }
+.verdict b { display: block; font-size: 18px; line-height: 1.4; word-break: auto-phrase; }
+.verdict .tag { margin-top: 4px; }
+.shot { display: grid; grid-template-columns: 72px 1fr; gap: 10px; align-items: start; background: var(--paper); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin: 8px 0; }
+.shot .thumb { float: none; width: 72px; height: 72px; margin: 0; }
+.shot p { margin: 4px 0; }
+.shot b { color: var(--accent); font-size: 13px; margin-right: 2px; }
+.shot p.muted b { color: var(--muted); }
+.chk b { word-break: auto-phrase; }
+.taps { display: flex; gap: 8px; flex-wrap: wrap; margin: 10px 0 6px; }
+.tap { flex: 1 1 30%; min-height: 44px; border: 1px solid var(--line); border-radius: 10px; background: var(--paper); color: var(--ink); font-size: 15px; font-family: inherit; padding: 8px 10px; cursor: pointer; word-break: auto-phrase; }
+.tap.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); font-weight: 700; }
+.tap.on[data-o="まだ"] { border-color: var(--muted); box-shadow: inset 0 0 0 2px var(--muted); font-weight: 500; color: var(--muted); }
+.chk input.note { font-size: 15px; padding: 8px 10px; border-radius: 10px; }
+.pick-all { display: flex; flex-direction: column; align-items: center; gap: 2px; margin: 12px 0 10px; }
+.pick-all .small { font-weight: 400; opacity: .9; line-height: 1.4; }
+.pick-all input[type=file] { display: none; }

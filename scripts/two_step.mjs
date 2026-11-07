@@ -50,7 +50,7 @@ else { ask = await post("/ask", baseBody); if (c.ask_file) writeFileSync(c.ask_f
 console.log("first_look:", ask.first_look);
 ask.questions.forEach((q) => console.log("Q", q.id, "|", q.why));
 ask.inferred.forEach((i) => console.log("INFERRED", i.id, "=", i.value, "|", i.basis));
-(ask.photo_notes || []).forEach((n) => console.log("NOTE", n.photo, "|", n.note));
+(ask.photo_notes || []).forEach((n) => console.log("NOTE", n.photo, "|", n.seen ?? n.note, "| ?", n.unknown || ""));
 console.log("floor_plan:", JSON.stringify(ask.floor_plan));
 
 const seen = new Set();
@@ -70,6 +70,7 @@ const r = await post("/diagnose", { ...baseBody, answers, inferred_from_photos: 
 console.log("causes:", r.causes.map((x) => `${x.rank} ${x.id} ${x.confidence}`).join(" / "));
 r.proposals.forEach((p) => console.log("P", p.rank, p.id, p.work_size, p.first_choice ? "FIRST" : "", "|", p.why_this_rank));
 r.today_actions.forEach((a) => console.log("T", a.name));
-console.log("checks:", r.checks.join(" / "));
+r.checks.forEach((c) => console.log("C", typeof c === "string" ? c : `${c.what} | ${c.how} | ${c.yes} / ${c.no}`));
+r.photo_findings.forEach((f) => console.log("F", f.photo, "|", f.seen ?? f.note, "| ?", f.unknown || ""));
 console.log("overrides:", JSON.stringify(r.rule_overrides));
 if (out) writeFileSync(out, JSON.stringify({ parent_words: c.parent_words, place, time_of_day, photo_labels: photos.map((p) => p.label), photo_paths: (c.photos || []).map((p) => p.path), ask, answers, inferredIds, rule_result, result: r }, null, 2));

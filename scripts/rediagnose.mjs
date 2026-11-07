@@ -14,15 +14,16 @@ const origin = process.env.NUKUMORI_ORIGIN || "http://localhost:8000";
 const r = prev.result;
 
 if (!answersFile) {
-  r.checks.forEach((c, i) => console.log(i + 1, c));
+  r.checks.forEach((c, i) => console.log(i + 1, typeof c === "string" ? c : `${c.what}（${c.how}）: ${c.yes} / ${c.no}`));
   process.exit(0);
 }
 const given = JSON.parse(readFileSync(answersFile, "utf8"));
-const confirmed = r.checks.map((check, i) => ({ check, answer: (given[i] || "").trim() || "まだ" }));
+const line = (c) => (typeof c === "string" ? c : c.how ? `${c.what}（${c.how}）` : c.what);
+const confirmed = r.checks.map((c, i) => ({ check: line(c), answer: (given[i] || "").trim() || "まだ" }));
 const previous = {
   causes: r.causes.map((c) => ({ rank: c.rank, id: c.id, name: c.name, confidence: c.confidence })),
   proposals: r.proposals.map((p) => ({ rank: p.rank, id: p.id, name: p.name, first_choice: p.first_choice })),
-  checks: r.checks,
+  checks: r.checks.map(line),
   photo_findings: r.photo_findings,
   today_actions: (r.today_actions || []).map((a) => a.name),
 };
@@ -51,5 +52,5 @@ const x = json.result;
 (x.changes || []).forEach((c) => console.log("CHANGE", c.what, "|", c.before, "→", c.after, "|", c.why));
 console.log("causes:", x.causes.map((c) => `${c.rank} ${c.id} ${c.confidence}`).join(" / "));
 x.proposals.forEach((p) => console.log("P", p.rank, p.id, p.first_choice ? "FIRST" : "", "|", p.why_this_rank));
-console.log("checks:", x.checks.join(" / "));
+x.checks.forEach((c) => console.log("C", typeof c === "string" ? c : `${c.what} | ${c.how} | ${c.yes} / ${c.no}`));
 if (process.argv[4]) writeFileSync(process.argv[4], JSON.stringify({ confirmed, result: x }, null, 2));

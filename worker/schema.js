@@ -40,10 +40,10 @@ const point = (extra) => obj({ ...extra, x: { type: "integer" }, y: { type: "int
 
 export const ASK_SCHEMA = obj({
   first_look: { type: "string" },
-  // One sentence per photo: what can be seen, and what cannot.
+  // Per photo: what can be seen (seen) and what cannot (unknown), a short phrase each.
   photo_notes: {
     type: "array",
-    items: obj({ photo: { type: "integer" }, note: { type: "string" } }),
+    items: obj({ photo: { type: "integer" }, seen: { type: "string" }, unknown: { type: "string" } }),
   },
   // Read from the floor-plan photo, if there is one. photo = 0 when there is none.
   floor_plan: obj({
@@ -87,10 +87,20 @@ export const DIAGNOSIS_SCHEMA = obj({
     type: "array",
     items: obj({
       photo: { type: "integer" },
-      note: { type: "string" },
+      seen: { type: "string" },
+      unknown: { type: "string" },
     }),
   },
-  checks: { type: "array", items: { type: "string" } },
+  // What to check at the house: a short title, how to look, and the two answers the family taps.
+  checks: {
+    type: "array",
+    items: obj({
+      what: { type: "string" },
+      how: { type: "string" },
+      yes: { type: "string" },
+      no: { type: "string" },
+    }),
+  },
   proposals: {
     type: "array",
     items: obj({
