@@ -54,7 +54,7 @@ async function rateLimitedBy(request, env) {
     try {
       const ip = request.headers.get("CF-Connecting-IP") || "local";
       const { success } = await env.RL.limit({ key: ip });
-      return !success;
+      if (!success) return true;
     } catch {}
   }
   return rateLimited(request);
