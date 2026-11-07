@@ -141,10 +141,10 @@ li { margin: 6px 0; }
 .scan-line { position: absolute; left: 0; right: 0; top: 0; height: 3px; background: #ffe2c2; box-shadow: 0 0 14px 5px rgba(227,162,90,.65); animation: nk-scan 2.6s ease-in-out infinite alternate; }
 @keyframes nk-scan { to { top: calc(100% - 3px); } }
 .scan .c { position: absolute; width: 18px; height: 18px; border: 3px solid #fff; opacity: .9; }
-.scan .tl { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
-.scan .tr { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
-.scan .bl { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
-.scan .br { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
+.scan .nw { top: 10px; left: 10px; border-right: 0; border-bottom: 0; }
+.scan .ne { top: 10px; right: 10px; border-left: 0; border-bottom: 0; }
+.scan .sw { bottom: 10px; left: 10px; border-right: 0; border-top: 0; }
+.scan .se { bottom: 10px; right: 10px; border-left: 0; border-top: 0; }
 .scan-frame.paper .c { border-color: var(--accent); }
 .scan-cap { text-align: center; margin: 10px 0 0; }
 .stages { list-style: none; padding: 0; margin: 14px 2px 4px; }

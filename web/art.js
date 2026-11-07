@@ -213,7 +213,7 @@
     const inner = previews.length
       ? previews.map((src, k) => `<img src="${src}" alt="" class="${k === 0 ? "on" : ""}">`).join("")
       : `<div class="scan-house">${house({ mode: "plain" })}</div>`;
-    return `<div class="scan" data-kind="${kind}"><div class="scan-frame ${previews.length ? "photo" : "paper"}">${inner}<div class="scan-grid"></div><div class="scan-line"></div><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i></div>
+    return `<div class="scan" data-kind="${kind}"><div class="scan-frame ${previews.length ? "photo" : "paper"}">${inner}<div class="scan-grid"></div><div class="scan-line"></div><i class="c nw"></i><i class="c ne"></i><i class="c sw"></i><i class="c se"></i></div>
       <p class="scan-cap"><span class="tag">${kind === "ask" ? "見ているところ" : "いまの作業"}</span><b>${caps[0]}</b></p>
       <ul class="stages">${(STAGES[kind] || STAGES.ask).map((t, i) => `<li class="${i === 0 ? "now" : "todo"}"><span class="mk"></span>${i === 0 ? `<b>${t}</b>` : t}</li>`).join("")}</ul></div>`;
   }
