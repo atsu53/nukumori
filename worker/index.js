@@ -108,6 +108,67 @@ function askLooksUnfinished(r) {
   return !fp.cold_points?.length || fp.cold_points.some((p) => !p.x && !p.y) || (fp.note || "").trim().length < 2;
 }
 
+// ---- the floor plan is read three times (2026-11-08) ----
+// Claude's reading of a hand-drawn plan is bimodal: on the sample house the dressing room came back either where
+// it is or a whole room to the left, in about half the runs each, whatever the ruler or the wording. So the plan
+// photo is read twice more in a small call of its own, in parallel with the main one, and each room takes the
+// median of the three readings; the route and the cold points move with the room nearest to them.
+const PLAN_SCHEMA = {
+  type: "object",
+  properties: { rooms: { type: "array", items: { type: "object", properties: { name: { type: "string" }, x: { type: "integer" }, y: { type: "integer" } }, required: ["name", "x", "y"], additionalProperties: false } } },
+  required: ["rooms"],
+  additionalProperties: false,
+};
+const PLAN_PROMPT = "手描きの間取り図の写真に、端末が青い目盛り（縦横とも 0〜1000。数字は線に沿って3か所に書いてある）を重ねてあります。目盛りは図の一部ではありません。寒さに関わる部屋（居間・茶の間・台所・DK・脱衣所・浴室・風呂・洗面所・寝室・廊下・玄関・トイレなど）を見つけ、部屋の名前の文字が書かれている場所を、その文字のすぐ近くにある目盛りの数字で読んで、部屋の中心の座標を返してください（左上が (0,0)、右下が (1000,1000) の整数）。隣の部屋の数字を使わないこと。読めた部屋だけ、8つまで。名前は図に書かれているとおりに書く。";
+function planPhotoIndex(photos) { return photos.findIndex((p) => /間取り|平面図|図面/.test(p.label)); }
+async function readPlanRooms(photo, env) {
+  const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
+  const r = await client.beta.messages.create({
+    model: env.MODEL || "claude-opus-5-5",
+    max_tokens: 1500,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
+    output_config: { effort: "low", format: { type: "json_schema", schema: PLAN_SCHEMA } },
+    system: PLAN_PROMPT,
+    messages: [{ role: "user", content: [{ type: "image", source: { type: "base64", media_type: photo.media_type, data: photo.data } }, { type: "text", text: "部屋の位置を読んでください。" }] }],
+  });
+  return JSON.parse(r.content.find((b) => b.type === "text")?.text ?? "").rooms;
+}
+function roomKey(name) {
+  const n = String(name || "");
+  if (/浴|風呂|バス/.test(n)) return "浴室";
+  if (/脱衣/.test(n)) return "脱衣所";
+  if (/洗面/.test(n)) return "洗面所";
+  if (/茶の間/.test(n)) return "茶の間";
+  if (/DK|台所|キッチン|ダイニング/.test(n)) return "台所";
+  if (/居間|リビング/.test(n)) return "居間";
+  if (/寝室/.test(n)) return "寝室";
+  if (/玄関/.test(n)) return "玄関";
+  if (/廊下/.test(n)) return "廊下";
+  if (/トイレ|便所/.test(n)) return "トイレ";
+  return n.replace(/[\s（）()]/g, "");
+}
+const median3 = (a, b, c) => [a, b, c].sort((x, y) => x - y)[1];
+const clamp = (v) => Math.max(0, Math.min(1000, Math.round(v)));
+function mergePlan(fp, extra) {
+  const shifts = [];
+  for (const r of fp.rooms || []) {
+    const k = roomKey(r.name);
+    const m = extra.map((rooms) => rooms.find((q) => roomKey(q.name) === k)).filter(Boolean);
+    if (m.length !== 2) continue;
+    const nx = median3(r.x, m[0].x, m[1].x), ny = median3(r.y, m[0].y, m[1].y);
+    shifts.push({ x0: r.x, y0: r.y, dx: nx - r.x, dy: ny - r.y });
+    r.x = nx; r.y = ny;
+  }
+  if (!shifts.length) return 0;
+  const nearest = (p) => { let best = null, bd = Infinity; for (const sh of shifts) { const d = Math.hypot(p.x - sh.x0, p.y - sh.y0); if (d < bd) { bd = d; best = sh; } } return bd < 220 ? best : null; };
+  for (const pt of [...(fp.cold_route || []), ...(fp.cold_points || [])]) {
+    const sh = nearest(pt);
+    if (sh) { pt.x = clamp(pt.x + sh.dx); pt.y = clamp(pt.y + sh.dy); }
+  }
+  return shifts.length;
+}
+
 async function callClaude(input, step, env) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   return client.beta.messages.create({
@@ -167,6 +228,9 @@ export default {
     if (!env.ANTHROPIC_API_KEY) return fail("not_configured", 500, origin);
 
     const started = Date.now();
+    // Two extra readings of the floor plan start together with the main call (ask step only).
+    const planIdx = step === "ask" ? planPhotoIndex(input.photos) : -1;
+    const planReads = planIdx >= 0 ? Promise.allSettled([readPlanRooms(input.photos[planIdx], env), readPlanRooms(input.photos[planIdx], env)]) : null;
     let response;
     try {
       response = await callClaude(input, step, env);
@@ -210,6 +274,14 @@ export default {
         const parsed = JSON.parse(again.content.find((b) => b.type === "text")?.text ?? "");
         if (!askLooksUnfinished(parsed)) result = parsed;
       } catch { /* keep the first answer */ }
+    }
+    if (planReads && result.floor_plan && result.floor_plan.photo === planIdx + 1) {
+      const extra = (await planReads).filter((r) => r.status === "fulfilled" && Array.isArray(r.value)).map((r) => r.value);
+      if (extra.length === 2) {
+        const n = mergePlan(result.floor_plan, extra);
+        result.floor_plan.reads = 3;
+        console.log(JSON.stringify({ at: new Date().toISOString(), step: "plan3", merged_rooms: n, ms: Date.now() - started }));
+      }
     }
     return json({ ok: true, model: response.model, result }, 200, origin);
   },
