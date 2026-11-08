@@ -183,7 +183,12 @@
       g.strokeStyle = "rgba(0,90,230,.45)";
       g.beginPath(); g.moveTo(x, 0); g.lineTo(x, h); g.moveTo(0, y); g.lineTo(w, y); g.stroke();
       const t = String(v), tw = g.measureText(t).width;
-      [[Math.min(x + 2, w - tw - 2), 1], [1, Math.min(y + 1, h - size - 2)]].forEach(([tx, ty]) => {
+      // The number of each line is written three times along it, so a number is always near any room: with the
+      // numbers only at the edges, Claude read rooms on the right a whole room too far left in about half the runs
+      // (2026-11-08, measured on the sample house).
+      const spots = [];
+      [0, 0.33, 0.66].forEach((f) => { spots.push([Math.min(x + 2, w - tw - 2), Math.min(f * h + 1, h - size - 2)]); spots.push([Math.min(f * w + 1, w - tw - 2), Math.min(y + 1, h - size - 2)]); });
+      spots.forEach(([tx, ty]) => {
         g.fillStyle = "rgba(255,255,255,.9)"; g.fillRect(tx - 1, ty, tw + 2, size + 1);
         g.fillStyle = "#003cc8"; g.fillText(t, tx, ty);
       });
