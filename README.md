@@ -6,7 +6,7 @@
 - 使う場所：https://nukumori-api.chaprec-transcribe.workers.dev （スマホのブラウザで開けます。インストール不要）
 - 作品：Built with Claude: Japan 2026（2026年11月2日〜8日）。このリポジトリのコードはすべて期間中に、Claude Code で書きました
 - 作者：福井市の一級建築士（注文住宅・店舗の設計施工）。出発点は、離れて暮らす母の「お風呂場がさむいんだべさ」の一言
-- デモ動画（3分）：https://www.youtube.com/watch?v=27m_gILlyHQ
+- デモ動画（3分）：https://www.youtube.com/watch?v=c9fve_QOHsI
 
 Claude がしていること：
 - 写真と間取り図から分かること（窓の種類・暖房・浴室のつくり・冷えの道筋）を先に読み、分からないことだけを3問に絞って聞く
