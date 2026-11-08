@@ -542,29 +542,52 @@
     };
   }
   // Each check is answered with a tap (the two answers Claude wrote for it, or まだ), plus an optional word.
+  // A photo taken while checking can go with the answer (2026-11-08). It is sent after the first photos,
+  // under the label 確認：…, and the check carries its number, so Claude reads it as what the family saw.
+  const CHECK_PHOTO_MAX = 3;
+  const checkKey = (i) => `c${i + 1}`;
   function SConfirm() {
     screen = "SConfirm";
     const x = r();
     const checks = checksOf(x);
+    Object.keys(state.photos).filter((k) => k.startsWith("c")).forEach((k) => delete state.photos[k]); // last round's check photos were already read
     render(`
       <h1>家で、確かめてきたこと</h1>
-      <p class="muted">確かめたものだけ押してください。まだのものは、そのままで大丈夫です。</p>
+      <p class="muted">確かめたものだけ押してください。まだのものは、そのままで大丈夫です。その場で撮った写真を添えると、Claude がその写真も読んで見立てを更新します。</p>
       ${checks.map((c, i) => `<div class="card chk" data-i="${i}"><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}
         <div class="taps">${[c.yes, c.no, "まだ"].map((o, j) => `<button class="tap ${j === 2 ? "on" : ""}" data-o="${esc(o)}">${esc(o)}</button>`).join("")}</div>
-        <input type="text" class="note" placeholder="ひとこと添えるなら（任意）"></div>`).join("")}
+        <input type="text" class="note" placeholder="ひとこと添えるなら（任意）">
+        <div class="add-photo"><label class="btn secondary">写真を添える<input type="file" accept="image/*" capture="environment" data-i="${i}"></label><span class="shot-box"></span></div></div>`).join("")}
       <button class="btn" id="go" disabled>この内容で診断し直す</button>
     `, { back: S5 });
     const $go = $screen.querySelector("#go");
+    const photoNo = (i) => { const n = Object.keys(state.photos).sort().indexOf(checkKey(i)); return n < 0 ? 0 : n + 1; };
     const answers = () => Array.from($screen.querySelectorAll(".chk")).map((el) => {
-      const c = checks[+el.dataset.i];
+      const i = +el.dataset.i, c = checks[i];
       const pick = (el.querySelector(".tap.on") || {}).dataset?.o || "まだ";
       const note = el.querySelector(".note").value.trim();
-      const answer = pick !== "まだ" ? (note ? `${pick}（${note}）` : pick) : note || "まだ";
-      return { check: checkLine(c), answer };
+      const photo = photoNo(i);
+      const answer = pick !== "まだ" ? (note ? `${pick}（${note}）` : pick) : note || (photo ? "写真を撮ってきた（写真を見て判断してください）" : "まだ");
+      return photo ? { check: checkLine(c), answer, photo } : { check: checkLine(c), answer };
     });
     const refresh = () => { $go.disabled = !answers().some((a) => a.answer !== "まだ"); };
     on(".tap", "click", (e) => { const b = e.currentTarget; b.parentElement.querySelectorAll(".tap").forEach((t) => t.classList.toggle("on", t === b)); refresh(); });
     on(".note", "input", refresh);
+    on(".add-photo input", "change", async (e) => {
+      const input = e.currentTarget, i = +input.dataset.i, f = input.files && input.files[0];
+      if (!f) return;
+      const have = Object.keys(state.photos).filter((k) => k.startsWith("c") && k !== checkKey(i)).length;
+      if (have >= CHECK_PHOTO_MAX) { alert(`写真は${CHECK_PHOTO_MAX}枚まで添えられます`); input.value = ""; return; }
+      const box = input.closest(".add-photo").querySelector(".shot-box");
+      box.textContent = "読み込んでいます…";
+      try {
+        const p = await shrink(f, false);
+        state.photos[checkKey(i)] = { label: `確認：${checks[i].what}`.slice(0, 40), ...p };
+        box.innerHTML = `<img class="thumb" src="${p.preview}" alt="確認の写真"><button class="link small" type="button">外す</button>`;
+        box.querySelector("button").addEventListener("click", () => { delete state.photos[checkKey(i)]; box.textContent = ""; input.value = ""; refresh(); });
+      } catch { box.textContent = "読み込めませんでした"; }
+      refresh();
+    });
     $go.addEventListener("click", () => {
       state.previous = previousSummary();
       state.confirmed = answers();

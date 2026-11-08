@@ -9,7 +9,7 @@ import { SYSTEM_PROMPT } from "./prompt.js";
 import { ASK_SCHEMA, DIAGNOSIS_SCHEMA } from "./schema.js";
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
-const MAX_PHOTOS = 5;
+const MAX_PHOTOS = 8; // five from the start, and up to three taken while checking (2026-11-08)
 const MAX_PHOTO_B64 = 1_500_000; // about 1.1 MB per resized photo
 const MAX_TEXT_JSON = 24_000; // answers, rule result, ask, and on a re-diagnosis the previous result
 const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
