@@ -344,10 +344,12 @@
     const pt = (q) => `${q.x},${Y(q)}`;
     // Room names are already on the drawing, so only the warm room is labelled; cold spots get numbered badges
     // and are listed below the plan (text on a small photo would collide).
-    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="${A.planColors.route}" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
+    const route = fp.cold_route.length >= 2 ? `<polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="${A.planColors.route}" stroke-opacity=".28" stroke-width="14" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/><polyline points="${fp.cold_route.map(pt).join(" ")}" fill="none" stroke="${A.planColors.route}" stroke-width="3" stroke-dasharray="10 7" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
     const warm = fp.rooms.find((r) => r.name === fp.warm_room) || (fp.cold_route.length ? { ...fp.cold_route[0], name: fp.warm_room } : null);
-    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="${A.planColors.warm}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
-    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
+    const warmMark = warm ? `<circle cx="${warm.x}" cy="${Y(warm)}" r="40" fill="${A.planColors.warm}" fill-opacity=".22"/><circle cx="${warm.x}" cy="${Y(warm)}" r="9" fill="${A.planColors.warm}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="warm" x="${warm.x}" y="${Y(warm) + 22}" text-anchor="middle" dominant-baseline="hanging">${esc(warm.name || "暖房")}</text>` : "";
+    // Claude places the marks by eye on a hand-drawn plan, so each gets a soft halo the size of a small room: the
+    // mark reads as "around here", not as a point that missed the wall (2026-11-08).
+    const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="44" fill="${A.planColors.cold}" fill-opacity=".2"/><circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
     const picDiv = `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>`;
     if (picOnly) return picDiv;
     return `${picDiv}
