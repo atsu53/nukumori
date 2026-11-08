@@ -133,6 +133,11 @@ export const DIAGNOSIS_SCHEMA = obj({
     }),
   },
   message_to_parent: { type: "string" },
+  // What Claude leaned on: sections of the architect's rules (from rule_result) and the judged cases this house resembles.
+  references: obj({
+    rules: { type: "array", items: obj({ section: { type: "string" }, said: { type: "string" } }) },
+    cases: { type: "array", items: obj({ id: { type: "string" }, why: { type: "string" } }) },
+  }),
   // Re-diagnosis only (previous + confirmed were sent): what changed and why. Empty on a first diagnosis.
   changes: {
     type: "array",

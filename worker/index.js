@@ -7,6 +7,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { SYSTEM_PROMPT } from "./prompt.js";
 import { ASK_SCHEMA, DIAGNOSIS_SCHEMA } from "./schema.js";
+import { ARCHITECT_CASES } from "./cases.js";
 
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTOS = 8; // five from the start, and up to three taken while checking (2026-11-08)
@@ -95,7 +96,7 @@ function buildContent(input, step) {
   } else {
     const { answers, inferred_from_photos, ask, rule_result, previous, confirmed } = input;
     const extra = previous ? { previous, confirmed } : {};
-    content.push({ type: "text", text: JSON.stringify({ step, ask, answers, inferred_from_photos, rule_result, ...extra }) });
+    content.push({ type: "text", text: JSON.stringify({ step, ask, answers, inferred_from_photos, rule_result, architect_cases: ARCHITECT_CASES, ...extra }) });
   }
   return content;
 }

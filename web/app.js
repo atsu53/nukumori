@@ -424,6 +424,16 @@
   function photoLabel(n) { const note = ((state.ask && state.ask.photo_notes) || []).find((x) => x.photo === n); if (note && note.label) return note.label; const p = state.photos[(state.sent || [])[n - 1]]; return p ? p.label : `写真${n}`; }
   const previews = () => Object.keys(state.photos).sort().map((k) => state.photos[k].preview);
   const findingCard = (f) => `<div class="shot">${photoThumb(f.photo)}<div><span class="tag">写真${f.photo}：${esc(photoLabel(f.photo))}</span><p class="small"><b>見えた</b>　${esc(seenOf(f))}</p>${unknownOf(f) ? `<p class="small muted"><b>分からない</b>　${esc(unknownOf(f))}</p>` : ""}</div></div>`;
+  // What Claude leaned on (2026-11-08): the rule sections it used and the architect's judged cases this house resembles.
+  function referencesHtml(x) {
+    const ref = x.references || {};
+    const rules = (ref.rules || []).filter((r) => r.section), cases = (ref.cases || []).filter((c) => c.id);
+    if (!rules.length && !cases.length) return "";
+    return `<div class="card refs"><p class="small"><b>Claude が照らしたもの</b></p>
+      ${rules.length ? `<p class="small">${rules.map((r) => `<span class="tag">ルール ${esc(r.section)}</span>${esc(r.said)}`).join("<br>")}</p>` : ""}
+      ${cases.length ? `<p class="small"><b>似ている事例</b>（建築士が判断を付けた10軒から）</p>${cases.map((c) => `<p class="small">事例${esc(c.id)}：${esc(c.why)}</p>`).join("")}` : ""}
+    </div>`;
+  }
   // The top causes as numbers on a house section, so "where the cold comes from" is seen before it is read.
   function causeHouse(x) {
     const marks = (x.causes || []).map((c) => ({ id: c.id, rank: c.rank }));
@@ -515,7 +525,7 @@
           ${more(`<div class="grid2">${checks.map((c, i) => `<div class="card chk"><span class="rank">${i + 1}</span><b>${esc(c.what)}</b>${c.how ? `<p class="small muted">${esc(c.how)}</p>` : ""}</div>`).join("")}</div>`, "確かめ方")}</div>` : ""}
         ${isSelf() || !x.message_to_parent ? "" : `<div class="stop"><span class="dot">声</span><div class="when">家族への一言</div><p class="say">${esc(x.message_to_parent)}</p><button class="link small" id="copyMsg">この一言をコピー</button></div>`}
       </div>
-      ${sec("原因の見立てと、なぜそう見たか", causes.map((c) => { const rc = ((state.ruleResult && state.ruleResult.causes) || []).find((k) => k.id === c.id); return `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}<p class="small">${esc(c.reason)}</p>${rc ? `<p class="small muted"><span class="tag">建築士のルール</span>${esc(rc.why)}</p>` : ""}</div>`; }).join("") + `<p class="small muted">「建築士のルール」は、一級建築士（作者）への聞き取りから作った判定の決まりで、Claude はそれを出発点に写真と答えを読みます。かっこの番号は設計資料の節です。</p>`)}
+      ${sec("原因の見立てと、なぜそう見たか", causes.map((c) => { const rc = ((state.ruleResult && state.ruleResult.causes) || []).find((k) => k.id === c.id); return `<div class="card"><span class="rank">${c.rank}</span><b>${esc(c.name)}</b> ${conf(c)}<p class="small">${esc(c.reason)}</p>${rc ? `<p class="small muted"><span class="tag">建築士のルール</span>${esc(rc.why)}</p>` : ""}</div>`; }).join("") + referencesHtml(x) + `<p class="small muted">「建築士のルール」は、一級建築士（作者）への聞き取りから作った判定の決まりで、Claude はそれを出発点に写真と答えを読みます。かっこの番号は設計資料の節です。</p>`)}
       ${planHtml() ? sec("間取り図で見ると", planHtml(false)) : ""}
       ${x.photo_findings.length ? sec(`写真で見つけたこと（${x.photo_findings.length}枚）`, x.photo_findings.map(findingCard).join("")) : ""}
       ${sec("数字と判断の出典", SOURCES)}
