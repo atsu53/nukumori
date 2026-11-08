@@ -8,7 +8,8 @@
       "window_heat_loss:needs_check"
     ],
     "proposals": [
-      "floor_insulation"
+      "floor_insulation",
+      "wall_ceiling_insulation[beyond_tolerance]"
     ],
     "heat_shock": "none",
     "note": ""
@@ -75,7 +76,8 @@
     "proposals": [
       "bath_heater[must_keep,beyond_tolerance]",
       "inner_window[beyond_tolerance]",
-      "bathroom_renovation[beyond_tolerance]"
+      "bathroom_renovation[beyond_tolerance]",
+      "wall_ceiling_insulation[beyond_tolerance]"
     ],
     "heat_shock": "strong",
     "note": ""
@@ -92,7 +94,8 @@
     "proposals": [
       "inner_window",
       "ventilation",
-      "floor_insulation"
+      "floor_insulation",
+      "wall_ceiling_insulation[beyond_tolerance]"
     ],
     "heat_shock": "none",
     "note": ""
@@ -109,7 +112,8 @@
     "proposals": [
       "inner_window",
       "ventilation",
-      "floor_insulation"
+      "floor_insulation",
+      "wall_ceiling_insulation"
     ],
     "heat_shock": "none",
     "note": ""

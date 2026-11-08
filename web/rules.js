@@ -102,7 +102,7 @@ window.NUKUMORI_RULES = (() => {
     const rented = a.q0 === "マンション・アパート（分譲）" || a.q0 === "借りている家";
 
     // 3.1 age
-    if (a.q1 === "1980年以前") add("wall_ceiling_insulation", "likely", "1980年以前の家は無断熱の可能性が高い（3.1）");
+    if (a.q1 === "1980年以前") { add("wall_ceiling_insulation", "likely", "1980年以前の家は無断熱の可能性が高い（3.1）"); want("wall_ceiling_insulation", true, "無断熱の可能性が高いので候補に（3.1。2026-11-08 の回帰チェックで、原因だけ出て案が出ていなかった穴を直した）"); }
     if (a.q1 === "1981〜1999年" && !windowDone && !windowGood) add("window_heat_loss", "likely", "昭和55年・平成4年基準のころの家は窓が単板ガラスの可能性が高い（3.1）");
     if (a.q1 === "2000〜2015年" && !windowDone && !windowGood) add("window_heat_loss", "needs_check", "複層でも枠がアルミなら窓から逃げる（3.1）");
 
