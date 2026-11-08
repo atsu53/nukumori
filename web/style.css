@@ -284,3 +284,4 @@ details.sec[open]:last-of-type > summary { border-bottom: 0; }
 .refs .tag { margin-right: 6px; }
 .paper .verdict .v { grid-template-columns: 96px 1fr; }
 .paper .card.first > p.small.muted { margin: 2px 0 6px; }
+.legend i.arch { display: inline-block; width: 22px; height: 0; border-top: 3px solid #2a6fdb; vertical-align: middle; margin-right: 6px; }

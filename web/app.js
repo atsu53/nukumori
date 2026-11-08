@@ -350,10 +350,14 @@
     // Claude places the marks by eye on a hand-drawn plan, so each gets a soft halo the size of a small room: the
     // mark reads as "around here", not as a point that missed the wall (2026-11-08).
     const cold = fp.cold_points.map((c, i) => `<circle cx="${c.x}" cy="${Y(c)}" r="44" fill="${A.planColors.cold}" fill-opacity=".2"/><circle cx="${c.x}" cy="${Y(c)}" r="16" fill="${A.planColors.cold}" stroke="#fff" stroke-width="2" vector-effect="non-scaling-stroke"/><text class="num" x="${c.x}" y="${Y(c)}" text-anchor="middle" dominant-baseline="central">${i + 1}</text>`).join("");
-    const picDiv = `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>`;
+    // The sample house only: the architect (the author) drew the route they would walk on this plan, so it is shown
+    // as a second line next to Claude's reading, and the legend says whose line is whose (2026-11-08).
+    const ARCH_ROUTE = [{ x: 565, y: 640 }, { x: 565, y: 520 }, { x: 770, y: 520 }, { x: 770, y: 420 }, { x: 770, y: 240 }];
+    const archRoute = state.sample ? `<polyline points="${ARCH_ROUTE.map(pt).join(" ")}" fill="none" stroke="#2a6fdb" stroke-opacity=".85" stroke-width="4" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>` : "";
+    const picDiv = `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${archRoute}${route}${warmMark}${cold}</svg></div>`;
     if (picOnly) return picDiv;
     return `${picDiv}
-      <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span> <span class="muted">印の位置はおおよそです（Claude が図を読んで置いた位置）</span></p>
+      <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span> <span class="muted">印の位置はおおよそです（Claude が図を読んで置いた位置）</span>${state.sample ? `<span><i class="arch"></i>建築士（作者）が読んだ経路。例の家だけ、見比べのために重ねています</span>` : ""}</p>
       ${compact
         ? `<p class="small">${fp.cold_points.map((c, i) => `<span class="rank">${i + 1}</span><b>${esc(c.name)}</b>`).join("　")}</p>${more(`${fp.cold_points.map((c, i) => `<p class="small"><b>${i + 1}. ${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`)}`
         : `${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
