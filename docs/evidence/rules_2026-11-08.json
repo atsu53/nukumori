@@ -1,0 +1,130 @@
+{
+  "02_window_done": {
+    "place": "bedroom",
+    "time": "",
+    "causes": [
+      "wall_ceiling_insulation:likely",
+      "floor_cold:likely",
+      "window_heat_loss:needs_check"
+    ],
+    "proposals": [
+      "floor_insulation"
+    ],
+    "heat_shock": "none",
+    "note": ""
+  },
+  "03_open_stove": {
+    "place": "living",
+    "time": "",
+    "causes": [
+      "window_heat_loss:almost_certain",
+      "moisture:needs_check"
+    ],
+    "proposals": [
+      "inner_window",
+      "ventilation"
+    ],
+    "heat_shock": "none",
+    "note": ""
+  },
+  "04_many_unknown": {
+    "place": "whole",
+    "time": "",
+    "causes": [],
+    "proposals": [],
+    "heat_shock": "none",
+    "note": ""
+  },
+  "05_condo": {
+    "place": "kitchen",
+    "time": "朝",
+    "causes": [
+      "window_heat_loss:likely"
+    ],
+    "proposals": [
+      "inner_window"
+    ],
+    "heat_shock": "none",
+    "note": "分譲・賃貸：窓や外壁の工事は、管理組合や大家さんの了解が先に要ります"
+  },
+  "06_rental": {
+    "place": "hall",
+    "time": "",
+    "causes": [
+      "window_heat_loss:almost_certain",
+      "floor_cold:likely",
+      "heating_mismatch:likely",
+      "unheated_rooms:likely"
+    ],
+    "proposals": [
+      "inner_window[beyond_tolerance]",
+      "aircon_heating[beyond_tolerance]"
+    ],
+    "heat_shock": "none",
+    "note": "分譲・賃貸：窓や外壁の工事は、管理組合や大家さんの了解が先に要ります"
+  },
+  "07_no_work": {
+    "place": "bath",
+    "time": "入浴時",
+    "causes": [
+      "window_heat_loss:almost_certain",
+      "wall_ceiling_insulation:likely",
+      "bathroom_cold:likely",
+      "unheated_rooms:likely"
+    ],
+    "proposals": [
+      "bath_heater[must_keep,beyond_tolerance]",
+      "inner_window[beyond_tolerance]",
+      "bathroom_renovation[beyond_tolerance]"
+    ],
+    "heat_shock": "strong",
+    "note": ""
+  },
+  "08_moving_soon": {
+    "place": "bedroom",
+    "time": "",
+    "causes": [
+      "window_heat_loss:almost_certain",
+      "wall_ceiling_insulation:likely",
+      "floor_cold:likely",
+      "moisture:likely"
+    ],
+    "proposals": [
+      "inner_window",
+      "ventilation",
+      "floor_insulation"
+    ],
+    "heat_shock": "none",
+    "note": ""
+  },
+  "09_leak": {
+    "place": "(none)",
+    "time": "",
+    "causes": [
+      "window_heat_loss:almost_certain",
+      "wall_ceiling_insulation:likely",
+      "floor_cold:likely",
+      "moisture:likely"
+    ],
+    "proposals": [
+      "inner_window",
+      "ventilation",
+      "floor_insulation"
+    ],
+    "heat_shock": "none",
+    "note": ""
+  },
+  "10_summer_too": {
+    "place": "bedroom",
+    "time": "",
+    "causes": [
+      "window_heat_loss:likely"
+    ],
+    "proposals": [
+      "inner_window",
+      "window_replace"
+    ],
+    "heat_shock": "none",
+    "note": ""
+  }
+}
