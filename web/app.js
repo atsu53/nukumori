@@ -351,7 +351,7 @@
     const picDiv = `<div class="plan"><img src="${p.preview}" alt="間取り図"><svg viewBox="0 0 1000 ${H}">${route}${warmMark}${cold}</svg></div>`;
     if (picOnly) return picDiv;
     return `${picDiv}
-      <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span></p>
+      <p class="legend"><span><i></i>${esc(fp.warm_room || "暖かい部屋")}から${esc(x_place())}までの経路</span> <span class="muted">印の位置はおおよそです（Claude が図を読んで置いた位置）</span></p>
       ${compact
         ? `<p class="small">${fp.cold_points.map((c, i) => `<span class="rank">${i + 1}</span><b>${esc(c.name)}</b>`).join("　")}</p>${more(`${fp.cold_points.map((c, i) => `<p class="small"><b>${i + 1}. ${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}${fp.note ? `<p class="small muted">${esc(fp.note)}</p>` : ""}`)}`
         : `${fp.cold_points.map((c, i) => `<p class="small"><span class="rank">${i + 1}</span><b>${esc(c.name)}</b>：${esc(c.why)}</p>`).join("")}
