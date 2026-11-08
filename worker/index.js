@@ -155,8 +155,9 @@ function mergePlan(fp, extra) {
   for (const r of fp.rooms || []) {
     const k = roomKey(r.name);
     const m = extra.map((rooms) => rooms.find((q) => roomKey(q.name) === k)).filter(Boolean);
-    if (m.length !== 2) continue;
-    const nx = median3(r.x, m[0].x, m[1].x), ny = median3(r.y, m[0].y, m[1].y);
+    if (m.length < 2) continue;
+    const xs = [r.x, ...m.map((q) => q.x)].sort((a, b) => a - b), ys = [r.y, ...m.map((q) => q.y)].sort((a, b) => a - b);
+    const nx = xs[Math.floor(xs.length / 2)], ny = ys[Math.floor(ys.length / 2)];
     shifts.push({ x0: r.x, y0: r.y, dx: nx - r.x, dy: ny - r.y });
     r.x = nx; r.y = ny;
   }
@@ -230,7 +231,8 @@ export default {
     const started = Date.now();
     // Two extra readings of the floor plan start together with the main call (ask step only).
     const planIdx = step === "ask" ? planPhotoIndex(input.photos) : -1;
-    const planReads = planIdx >= 0 ? Promise.allSettled([readPlanRooms(input.photos[planIdx], env), readPlanRooms(input.photos[planIdx], env)]) : null;
+    const PLAN_EXTRA = Number(env.PLAN_EXTRA || 4); // extra readings of the plan; with the main one, an odd number for the median
+    const planReads = planIdx >= 0 ? Promise.allSettled(Array.from({ length: PLAN_EXTRA }, () => readPlanRooms(input.photos[planIdx], env))) : null;
     let response;
     try {
       response = await callClaude(input, step, env);
@@ -277,9 +279,9 @@ export default {
     }
     if (planReads && result.floor_plan && result.floor_plan.photo === planIdx + 1) {
       const extra = (await planReads).filter((r) => r.status === "fulfilled" && Array.isArray(r.value)).map((r) => r.value);
-      if (extra.length === 2) {
+      if (extra.length >= 2) {
         const n = mergePlan(result.floor_plan, extra);
-        result.floor_plan.reads = 3;
+        result.floor_plan.reads = extra.length + 1;
         console.log(JSON.stringify({ at: new Date().toISOString(), step: "plan3", merged_rooms: n, ms: Date.now() - started }));
       }
     }
