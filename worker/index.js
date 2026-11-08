@@ -124,7 +124,7 @@ function planPhotoIndex(photos) { return photos.findIndex((p) => /間取り|平�
 async function readPlanRooms(photo, env) {
   const client = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
   const r = await client.beta.messages.create({
-    model: env.MODEL || "claude-opus-5-5",
+    model: env.PLAN_MODEL || "claude-opus-5-5",
     max_tokens: 1500,
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
@@ -137,7 +137,7 @@ async function readPlanRooms(photo, env) {
 function roomKey(name) {
   const n = String(name || "");
   if (/浴|風呂|バス/.test(n)) return "浴室";
-  if (/脱衣/.test(n)) return "脱衣所";
+  if (/脱/.test(n)) return "脱衣所";
   if (/洗面/.test(n)) return "洗面所";
   if (/茶の間/.test(n)) return "茶の間";
   if (/DK|台所|キッチン|ダイニング/.test(n)) return "台所";
