@@ -52,6 +52,8 @@ export const ASK_SCHEMA = obj({
     warm_room: { type: "string" },
     cold_route: { type: "array", items: point({}) },
     cold_points: { type: "array", items: point({ name: { type: "string" }, why: { type: "string" } }) },
+    // Where Claude sees three of the ruler's own lines; the page uses them to correct a scale error in its reading.
+    grid: obj({ x500: { type: "integer" }, x800: { type: "integer" }, y500: { type: "integer" } }),
     note: { type: "string" },
   }),
   questions: {
